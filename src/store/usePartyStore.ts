@@ -70,6 +70,12 @@ interface PartyState {
   // Guests
   guests: Guest[];
 
+  // Maps for fast lookups to avoid O(N) scans on large lists
+  eventsById?: Record<string, Event>;
+  guestsByEventId?: Record<string, Guest[]>;
+
+  // Marks that we have attempted to load guests for an event (true = loaded, even if empty)
+  guestsLoadedMap?: Record<string, boolean>;
   // Currently fetching guests for this event (prevents duplicate fetches)
   fetchingEventId?: string | null;
   
@@ -97,6 +103,9 @@ export const usePartyStore = create<PartyState>()(
       currentPage: 'auth',
       events: [],
       currentEvent: null,
+  eventsById: {},
+  guestsByEventId: {},
+  guestsLoadedMap: {},
   guests: [],
   fetchingEventId: null,
       isLoading: false,
@@ -133,20 +142,24 @@ export const usePartyStore = create<PartyState>()(
                   name: normalizedUser.name ?? null
                 }, { onConflict: 'id' });
               const events = await eventService.getUserEvents(user.id);
-              set((state) => {
-                let newCurrentEvent = state.currentEvent;
-                if ((!state.currentEvent || !events.some(e => e.id === state.currentEvent?.id)) && events.length > 0) {
-                  newCurrentEvent = events[0];
-                } else if (events.length === 0) {
-                  newCurrentEvent = null;
-                }
-                return {
-                  ...state,
-                  events,
-                  currentEvent: newCurrentEvent,
-                  isLoading: false
-                };
-              });
+                  // build fast lookup map
+                  const eventsById: Record<string, Event> = {};
+                  for (const e of events) eventsById[e.id] = e;
+                  set((state) => {
+                    let newCurrentEvent = state.currentEvent;
+                    if ((!state.currentEvent || !eventsById[state.currentEvent?.id ?? '']) && events.length > 0) {
+                      newCurrentEvent = events[0];
+                    } else if (events.length === 0) {
+                      newCurrentEvent = null;
+                    }
+                    return {
+                      ...state,
+                      events,
+                      eventsById,
+                      currentEvent: newCurrentEvent,
+                      isLoading: false
+                    };
+                  });
             } catch (error) {
               set((state) => ({ ...state, events: [], currentEvent: null, isLoading: false }));
             }
@@ -170,9 +183,11 @@ export const usePartyStore = create<PartyState>()(
         set((state) => ({ ...state, isLoading: true }));
         try {
           const events = await eventService.getUserEvents(user.id);
+          const eventsById: Record<string, Event> = {};
+          for (const e of events) eventsById[e.id] = e;
           set((state) => {
             let newCurrentEvent = state.currentEvent;
-            if ((!state.currentEvent || !events.some(e => e.id === state.currentEvent?.id)) && events.length > 0) {
+            if ((!state.currentEvent || !eventsById[state.currentEvent?.id ?? '']) && events.length > 0) {
               newCurrentEvent = events[0];
             } else if (events.length === 0) {
               newCurrentEvent = null;
@@ -180,6 +195,7 @@ export const usePartyStore = create<PartyState>()(
             return {
               ...state,
               events,
+              eventsById,
               currentEvent: newCurrentEvent,
               isLoading: false
             };
@@ -194,10 +210,15 @@ export const usePartyStore = create<PartyState>()(
         // Only update if different to prevent render loops
         if (get().currentPage !== page) set({ currentPage: page });
       },
-      setEvents: (events) => set({ events }),
+      setEvents: (events) => {
+        const eventsById: Record<string, Event> = {};
+        for (const e of events) eventsById[e.id] = e;
+        set({ events, eventsById });
+      },
       setCurrentEvent: async (event) => {
         const state = get();
-        const eventGuestsLoaded = event && state.guests.some(g => g.event_id === event.id);
+        // Prefer guestsLoadedMap for O(1) check; fall back to scanning guests if map missing
+        const eventGuestsLoaded = !!(event && ((state.guestsLoadedMap && state.guestsLoadedMap[event.id]) || state.guests.some(g => g.event_id === event.id)));
 
         // Debug trace to help find render loops
         try {
@@ -218,6 +239,7 @@ export const usePartyStore = create<PartyState>()(
           set((s) => ({
             // ensure events list contains the current event so UI components relying on events don't see an empty list
             events: event && !s.events.some(e => e.id === event.id) ? [...s.events, event] : s.events,
+            eventsById: event ? { ...(s.eventsById || {}), [event.id]: event } : s.eventsById,
             currentEvent: event,
             isLoading: false
           }));
@@ -227,19 +249,22 @@ export const usePartyStore = create<PartyState>()(
         }
 
         // Prevent duplicate fetches for the same event
-        if (state.fetchingEventId && event && state.fetchingEventId === event.id) {
+  if (state.fetchingEventId && event && state.fetchingEventId === event.id) {
           return;
         }
 
         // mark fetching event id
-        if (event) set({ fetchingEventId: event.id, isLoading: true });
+  if (event) set({ fetchingEventId: event.id, isLoading: true });
 
         try {
           const guests = await eventService.getEventGuests(event.id);
           set((s) => ({
             events: s.events.some(e => e.id === event.id) ? s.events : [...s.events, event],
+            eventsById: { ...(s.eventsById || {}), [event.id]: event },
             currentEvent: event,
             guests,
+            guestsByEventId: { ...(s.guestsByEventId || {}), [event.id]: guests },
+            guestsLoadedMap: { ...(s.guestsLoadedMap || {}), [event.id]: true },
             isLoading: false,
             fetchingEventId: null
           }));
@@ -248,8 +273,11 @@ export const usePartyStore = create<PartyState>()(
         } catch (e) {
           set((s) => ({
             events: s.events.some(e => e.id === event.id) ? s.events : [...s.events, event],
+            eventsById: { ...(s.eventsById || {}), [event.id]: event },
             currentEvent: event,
             guests: [],
+            guestsByEventId: { ...(s.guestsByEventId || {}), [event.id]: [] },
+            guestsLoadedMap: { ...(s.guestsLoadedMap || {}), [event.id]: true },
             isLoading: false,
             fetchingEventId: null
           }));
@@ -257,11 +285,34 @@ export const usePartyStore = create<PartyState>()(
           console.info('[store] setCurrentEvent fetch failed', { eventId: event.id, error: (e as Error)?.message });
         }
       },
-      setGuests: (guests) => set({ guests }),
-      addGuest: (guest) => set((state) => ({ guests: [...state.guests, guest] })),
-      updateGuest: (guestId, updates) => set((state) => ({
-        guests: state.guests.map(guest => guest.id === guestId ? { ...guest, ...updates } : guest)
-      })),
+      setGuests: (guests) => {
+        const guestsByEventId: Record<string, Guest[]> = {};
+        const guestsLoadedMap: Record<string, boolean> = {};
+        for (const g of guests) {
+          guestsByEventId[g.event_id] = guestsByEventId[g.event_id] || [];
+          guestsByEventId[g.event_id].push(g);
+          guestsLoadedMap[g.event_id] = true;
+        }
+        set({ guests, guestsByEventId, guestsLoadedMap });
+      },
+      addGuest: (guest) => set((state) => {
+        const nextGuests = [...state.guests, guest];
+        const nextGuestsByEvent = { ...(state.guestsByEventId || {}) };
+        nextGuestsByEvent[guest.event_id] = [...(nextGuestsByEvent[guest.event_id] || []), guest];
+        const nextGuestsLoaded = { ...(state.guestsLoadedMap || {}), [guest.event_id]: true };
+        return { guests: nextGuests, guestsByEventId: nextGuestsByEvent, guestsLoadedMap: nextGuestsLoaded };
+      }),
+      updateGuest: (guestId, updates) => set((state) => {
+        const nextGuests = state.guests.map(guest => guest.id === guestId ? { ...guest, ...updates } : guest);
+        const nextGuestsByEvent: Record<string, Guest[]> = {};
+        const nextGuestsLoaded: Record<string, boolean> = { ...(state.guestsLoadedMap || {}) };
+        for (const g of nextGuests) {
+          nextGuestsByEvent[g.event_id] = nextGuestsByEvent[g.event_id] || [];
+          nextGuestsByEvent[g.event_id].push(g);
+          nextGuestsLoaded[g.event_id] = true;
+        }
+        return { guests: nextGuests, guestsByEventId: nextGuestsByEvent, guestsLoadedMap: nextGuestsLoaded };
+      }),
       setLoading: (loading) => set({ isLoading: loading }),
       logout: () => { clearAppState(); }
     }),

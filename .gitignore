@@ -29,6 +29,5 @@ node_modules/
 .env.local
 node_modules/
 
-# Ignore markdown files across the repo while keeping the top-level README.md tracked
+# Ignore markdown files across the repo (including README.md)
 **/*.md
-!README.md

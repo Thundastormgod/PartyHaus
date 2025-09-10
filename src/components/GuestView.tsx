@@ -14,10 +14,11 @@ interface GuestViewProps {
 }
 
 export const GuestView = ({ guestId }: GuestViewProps) => {
-  const { events, guests, currentEvent } = usePartyStore();
+  const { events, guests, currentEvent, guestsByEventId, guestsLoadedMap } = usePartyStore();
   const setGuests = usePartyStore((s) => s.setGuests);
   const setEvents = usePartyStore((s) => s.setEvents);
   const setCurrentEvent = usePartyStore((s) => s.setCurrentEvent);
+  const setStateRaw = usePartyStore((s) => (s as any));
   const [showQR, setShowQR] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const triedFetch = useRef(false);
@@ -41,8 +42,9 @@ export const GuestView = ({ guestId }: GuestViewProps) => {
 
         if (!mounted) return;
         if (fetchedGuest) {
-          // merge into store guests
-          setGuests([...(guests || []).filter(g => g.id !== fetchedGuest.id), fetchedGuest]);
+          // merge into store guests (append if missing)
+          const mergedGuests = [...(guests || []).filter(g => g.id !== fetchedGuest.id), fetchedGuest];
+          setGuests(mergedGuests);
           // fetch event for guest
           const { data: fetchedEvent } = await supabase
             .from('events')
@@ -52,12 +54,17 @@ export const GuestView = ({ guestId }: GuestViewProps) => {
           if (!mounted) return;
           if (fetchedEvent) {
             setEvents([...(events || []).filter(e => e.id !== fetchedEvent.id), fetchedEvent]);
-            // set currentEvent for the UI
+            // mark guest list for this event as loaded even if empty to avoid re-fetch loops
             try {
-              // prefer using setCurrentEvent action so guests are loaded
               await setCurrentEvent(fetchedEvent);
             } catch (e) {
-              // fallback: set directly
+              // fallback: ensure we mark guestsLoadedMap so other components don't repeatedly fetch
+              try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (usePartyStore as any).setState({ guestsLoadedMap: { ...(guestsLoadedMap || {}), [fetchedEvent.id]: true } });
+              } catch (_) {
+                // ignore
+              }
               setCurrentEvent(fetchedEvent);
             }
           }

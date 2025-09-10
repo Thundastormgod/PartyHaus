@@ -12,7 +12,7 @@ import { ArrowLeft, Calendar, MapPin, Music, Plus, QrCode, Users, UserCheck, Use
 import format from 'date-fns/format';
 
   export const EventManagement = () => {
-  const { currentEvent, events, setCurrentEvent, guests, setCurrentPage, addGuest, isLoading } = usePartyStore();
+  const { currentEvent, events, setCurrentEvent, guests, guestsByEventId, guestsLoadedMap, setCurrentPage, addGuest, isLoading } = usePartyStore();
     // Recover currentEvent from events if missing
     // Robustly recover currentEvent and guests
     // Ref to track last event id for which setCurrentEvent was called
@@ -21,22 +21,30 @@ import format from 'date-fns/format';
     useEffect(() => {
       if (isLoading) return;
       if (!currentEvent && events && events.length > 0) {
-        setCurrentEvent(events[0]);
-        lastFetchedEventId.current = events[0].id;
-      } else if (
-        currentEvent &&
-        guests.filter(g => g.event_id === currentEvent.id).length === 0 &&
-        !isLoading &&
-        lastFetchedEventId.current !== currentEvent.id
-      ) {
-        setCurrentEvent(currentEvent);
-        lastFetchedEventId.current = currentEvent.id;
+        // set first event as current if missing
+        (async () => {
+          lastFetchedEventId.current = events[0].id;
+          await setCurrentEvent(events[0]);
+        })();
+        return;
       }
-    }, [currentEvent, events, guests, setCurrentEvent, isLoading]);
+
+      if (!currentEvent) return;
+
+      // Check fast maps first to see if guests are already loaded for this event
+      const loaded = !!(guestsLoadedMap && guestsLoadedMap[currentEvent.id]) || !!(guestsByEventId && (guestsByEventId[currentEvent.id]?.length ?? 0) > 0) || guests.some(g => g.event_id === currentEvent.id);
+      if (!loaded && lastFetchedEventId.current !== currentEvent.id) {
+        lastFetchedEventId.current = currentEvent.id;
+        // await to avoid bounce/re-entry
+        (async () => {
+          await setCurrentEvent(currentEvent);
+        })();
+      }
+    }, [currentEvent, events, guests, guestsByEventId, guestsLoadedMap, setCurrentEvent, isLoading]);
     const [showAddGuest, setShowAddGuest] = useState(false);
     const [guestForm, setGuestForm] = useState({ name: '', email: '' });
 
-    const eventGuests = currentEvent ? guests.filter(guest => guest.event_id === currentEvent.id) : [];
+  const eventGuests = currentEvent ? (guestsByEventId?.[currentEvent.id] ?? guests.filter(guest => guest.event_id === currentEvent.id)) : [];
     const checkedInCount = eventGuests.filter(guest => guest.is_checked_in).length;
 
     const handleAddGuest = (e: React.FormEvent) => {

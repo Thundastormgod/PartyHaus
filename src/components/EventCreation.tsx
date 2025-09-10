@@ -30,6 +30,7 @@ export const EventCreation = () => {
   const [createdEvent, setCreatedEvent] = useState<any>(null);
   const [inviteFile, setInviteFile] = useState<File | null>(null);
   const [invitePreview, setInvitePreview] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +38,7 @@ export const EventCreation = () => {
       alert('You must be logged in to create an event.');
       return;
     }
+
     const newEvent = {
       host_id: user.id,
       name: formData.name,
@@ -44,9 +46,16 @@ export const EventCreation = () => {
       location: formData.location,
       spotify_playlist_url: formData.spotify_playlist_url
     };
+
+    setSubmitting(true);
     try {
+      // eslint-disable-next-line no-console
+      console.info('[create-event] submit', newEvent);
+
       const created = await eventService.createEvent(newEvent);
       if (created) {
+        // eslint-disable-next-line no-console
+        console.info('[create-event] created', created.id);
         const freshEvents = await eventService.getUserEvents(user.id);
         setEvents(freshEvents);
         setCreatedEvent(created);
@@ -55,7 +64,11 @@ export const EventCreation = () => {
         alert('Failed to create event. Please try again.');
       }
     } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[create-event] error', err);
       alert('An error occurred while creating the event.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -138,9 +151,57 @@ export const EventCreation = () => {
   // Default: event creation form
   return (
     <div className="min-h-screen bg-background">
-      {/* ...existing code... */}
-      {/* The rest of the event creation form remains unchanged */}
-      {/* ...existing code... */}
+      <div className="container mx-auto px-4 py-12">
+        <div className="max-w-2xl mx-auto">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Create Event</CardTitle>
+                  <CardDescription>Let's get your event set up.</CardDescription>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setCurrentPage('dashboard')}>
+                  <ArrowLeft className="h-4 w-4 mr-2" /> Back
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Event Name</Label>
+                  <Input id="name" value={formData.name} onChange={(e) => handleInputChange('name', e.target.value)} required />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="date">Date</Label>
+                    <Input id="date" type="date" value={formData.date} onChange={(e) => handleInputChange('date', e.target.value)} required />
+                  </div>
+                  <div>
+                    <Label htmlFor="time">Time</Label>
+                    <Input id="time" type="time" value={formData.time} onChange={(e) => handleInputChange('time', e.target.value)} required />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="location">Location</Label>
+                  <Input id="location" value={formData.location} onChange={(e) => handleInputChange('location', e.target.value)} />
+                </div>
+
+                <div>
+                  <Label htmlFor="playlist">Spotify Playlist URL</Label>
+                  <Input id="playlist" value={formData.spotify_playlist_url} onChange={(e) => handleInputChange('spotify_playlist_url', e.target.value)} />
+                </div>
+
+                <div className="flex gap-2 mt-4">
+                  <Button type="submit" className="flex-1">Create Event</Button>
+                  <Button type="button" variant="outline" onClick={() => { setFormData({ name: '', date: '', time: '', location: '', spotify_playlist_url: '' }); }}>Reset</Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };
