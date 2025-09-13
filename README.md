@@ -56,13 +56,13 @@ cp .env.example .env.local
 # Edit .env.local with your Supabase credentials
 
 # Start development server
-bun run dev
+npm run dev
 
 # Run tests
-bun run test
+npm run test
 
 # Build for production
-bun run build
+npm run build
 ```
 
 ### Environment Setup
@@ -105,16 +105,16 @@ For detailed setup instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ```bash
 # Run all tests
-bun run test
+npm run test
 
 # Run tests in watch mode
-bun run test:dev
+npm run test:dev
 
 # Run tests with coverage
-bun run test:coverage
+npm run test:coverage
 
 # Run tests with UI
-bun run test:ui
+npm run test:ui
 ```
 
 ## 📁 Project Structure
@@ -143,7 +143,7 @@ src/
 
 1. **Create feature branch**: `git checkout -b feature/your-feature`
 2. **Make changes** and write tests
-3. **Run tests**: `bun run test`
+3. **Run tests**: `npm run test`
 4. **Create pull request** for code review
 5. **Preview deployment** automatically created
 6. **Merge to main** for production deployment
