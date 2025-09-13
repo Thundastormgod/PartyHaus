@@ -73,8 +73,12 @@ describe('Logout Userflow Integration Test', () => {
     host_id: 'test-user-id',
     name: 'Test Event',
     event_date: '2025-01-01T12:00:00Z',
+    date: '2025-01-01T12:00:00Z', // Added missing field
     location: 'Test Location',
-    spotify_playlist_url: 'https://spotify.com/test'
+    spotify_playlist_url: 'https://spotify.com/test',
+    is_public: false, // Added missing field
+    created_at: '2025-01-01T10:00:00Z', // Added missing field
+    updated_at: '2025-01-01T10:00:00Z' // Added missing field
   };
 
   beforeEach(() => {

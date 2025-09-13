@@ -4,8 +4,9 @@ import { usePartyStore } from '@/store/usePartyStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Music, Sparkles, Users } from 'lucide-react';
+import { Music, Sparkles, Users, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { validateSignIn, validateSignUp, authRateLimiter, type SignInInput, type SignUpInput } from '@/lib/validation';
 
 export const AuthScreen = () => {
   console.log('🎨 AUTH_SCREEN: AuthScreen component is rendering');
@@ -51,17 +52,47 @@ export const AuthScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isRateLimited, setIsRateLimited] = useState(false);
   const { setUser, setLoading, isLoading } = usePartyStore();
 
-  const validateForm = () => {
-    if (password.length < 6) {
-      throw new Error('Password must be at least 6 characters long');
+  const validateAndSanitizeForm = () => {
+    setErrors({});
+    setIsRateLimited(false);
+
+    // Check rate limiting
+    const rateLimitKey = `auth_${email.trim().toLowerCase()}`;
+    if (!authRateLimiter.isAllowed(rateLimitKey)) {
+      const remainingTime = Math.ceil(authRateLimiter.getRemainingTime(rateLimitKey) / 1000 / 60);
+      setIsRateLimited(true);
+      throw new Error(`Too many attempts. Please try again in ${remainingTime} minutes.`);
     }
-    if (!email.includes('@')) {
-      throw new Error('Please enter a valid email address');
-    }
-    if (!isLogin && !name.trim()) {
-      throw new Error('Please enter your name');
+
+    if (isLogin) {
+      const validation = validateSignIn({ email, password });
+      if (!validation.success) {
+        const fieldErrors: Record<string, string> = {};
+        validation.errors.forEach(error => {
+          const field = error.path?.[0] as string || 'general';
+          fieldErrors[field] = error.message;
+        });
+        setErrors(fieldErrors);
+        throw new Error('Please fix the validation errors');
+      }
+      return validation.data;
+    } else {
+      const validation = validateSignUp({ email, password, confirmPassword });
+      if (!validation.success) {
+        const fieldErrors: Record<string, string> = {};
+        validation.errors.forEach(error => {
+          const field = error.path?.[0] as string || 'general';
+          fieldErrors[field] = error.message;
+        });
+        setErrors(fieldErrors);
+        throw new Error('Please fix the validation errors');
+      }
+      return validation.data;
     }
   };
 
@@ -71,25 +102,38 @@ export const AuthScreen = () => {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
     try {
-      validateForm();
+      const validatedData = validateAndSanitizeForm();
 
       if (isLogin) {
-        const { user, error } = await signIn(email, password);
+        const { user, error } = await signIn(validatedData.email, validatedData.password);
         if (error) throw error;
         // Don't manually set user here - the auth state change listener will handle it
         // This prevents race conditions and infinite reloads
       } else {
-        const { user, error } = await signUp(email, password);
+        const { user, error } = await signUp(validatedData.email, validatedData.password);
         if (error) throw error;
         if (user) {
           alert('Please check your email to confirm your account!');
           setIsLogin(true);
+          // Clear form
+          setEmail('');
+          setPassword('');
+          setConfirmPassword('');
+          setName('');
         }
       }
     } catch (error: any) {
-  // ...removed bloatware error log...
+      console.error('Auth error:', error);
       const errorMessage = error.message || 'An error occurred during authentication';
+      
+      // Reset rate limiter on successful resolution of error (like fixing validation)
+      if (!isRateLimited && !errorMessage.includes('Too many attempts')) {
+        const rateLimitKey = `auth_${email.trim().toLowerCase()}`;
+        authRateLimiter.reset(rateLimitKey);
+      }
+      
       alert(errorMessage);
     } finally {
       setLoading(false);
@@ -188,37 +232,105 @@ export const AuthScreen = () => {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       autoComplete="name"
-                      className="bg-secondary/50 border-primary/30 focus:border-primary"
+                      className={`bg-secondary/50 border-primary/30 focus:border-primary ${
+                        errors.name ? 'border-destructive' : ''
+                      }`}
                     />
+                    {errors.name && (
+                      <p className="text-sm text-destructive mt-1 flex items-center">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        {errors.name}
+                      </p>
+                    )}
                   </MotionDiv>
                 )}
-                <Input
-                  type="email"
-                  placeholder="Email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                  className="bg-secondary/50 border-primary/30 focus:border-primary"
-                />
-                <Input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete={isLogin ? "current-password" : "new-password"}
-                  className="bg-secondary/50 border-primary/30 focus:border-primary"
-                />
+                
+                <div>
+                  <Input
+                    type="email"
+                    placeholder="Email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    className={`bg-secondary/50 border-primary/30 focus:border-primary ${
+                      errors.email ? 'border-destructive' : ''
+                    }`}
+                  />
+                  {errors.email && (
+                    <p className="text-sm text-destructive mt-1 flex items-center">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      {errors.email}
+                    </p>
+                  )}
+                </div>
+                
+                <div>
+                  <Input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete={isLogin ? "current-password" : "new-password"}
+                    className={`bg-secondary/50 border-primary/30 focus:border-primary ${
+                      errors.password ? 'border-destructive' : ''
+                    }`}
+                  />
+                  {errors.password && (
+                    <p className="text-sm text-destructive mt-1 flex items-center">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      {errors.password}
+                    </p>
+                  )}
+                </div>
+
+                {!isLogin && (
+                  <MotionDiv
+                    {...(process.env.NODE_ENV !== 'test' && {
+                      initial: { opacity: 0, height: 0 },
+                      animate: { opacity: 1, height: 'auto' },
+                      transition: { duration: 0.3 }
+                    })}
+                  >
+                    <Input
+                      type="password"
+                      placeholder="Confirm password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      autoComplete="new-password"
+                      className={`bg-secondary/50 border-primary/30 focus:border-primary ${
+                        errors.confirmPassword ? 'border-destructive' : ''
+                      }`}
+                    />
+                    {errors.confirmPassword && (
+                      <p className="text-sm text-destructive mt-1 flex items-center">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        {errors.confirmPassword}
+                      </p>
+                    )}
+                  </MotionDiv>
+                )}
+
+                {isRateLimited && (
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
+                    <p className="text-sm text-destructive flex items-center">
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      Too many failed attempts. Please wait before trying again.
+                    </p>
+                  </div>
+                )}
+
                 <Button
                   type="submit"
-                  className="w-full btn-party text-lg font-semibold h-12"
-                  disabled={isLoading}
+                  className="w-full bg-gradient-primary text-primary-foreground hover:shadow-neon"
+                  disabled={isLoading || isRateLimited}
                 >
                   {isLoading ? (
                     <div className="flex items-center space-x-2">
-                      <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin" />
-                      <span>{isLogin ? 'Signing in...' : 'Creating account...'}</span>
+                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                      <span>Please wait...</span>
                     </div>
                   ) : (
                     isLogin ? 'Start Planning' : 'Create Account'

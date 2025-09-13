@@ -1,5 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { useRenderSafety } from '@/lib/render-safety';
+import { ErrorHandler, AppError, NetworkError } from '@/lib/error-handling';
+import { NetworkStatusIndicator } from '@/components/OfflineNotification';
 
 interface Props {
   children: ReactNode;
@@ -13,6 +15,9 @@ interface State {
   errorInfo: ErrorInfo | null;
   errorCount: number;
   lastErrorTime: number;
+  errorType: 'network' | 'render' | 'validation' | 'unknown';
+  canRetry: boolean;
+  isRecovering: boolean;
 }
 
 /**
@@ -37,6 +42,9 @@ export class HardenedErrorBoundary extends Component<Props, State> {
       errorInfo: null,
       errorCount: 0,
       lastErrorTime: 0,
+      errorType: 'unknown',
+      canRetry: true,
+      isRecovering: false,
     };
   }
 
@@ -58,6 +66,11 @@ export class HardenedErrorBoundary extends Component<Props, State> {
       time => now - time < this.errorCountWindow
     );
     
+    // Determine error type and recovery strategy
+    const processedError = ErrorHandler.handle(error);
+    const errorType = this.categorizeError(processedError);
+    const canRetry = this.canRetryError(errorType, this.errorHistory.length);
+    
     // Check if we're in an error loop
     if (this.errorHistory.length > this.maxErrorsPerWindow) {
       console.error('🚨 ERROR_BOUNDARY: Error loop detected! Too many errors in short time period.');
@@ -71,27 +84,133 @@ export class HardenedErrorBoundary extends Component<Props, State> {
     }
 
     this.setState({
-      error,
+      error: processedError,
       errorInfo,
       errorCount: this.errorHistory.length,
       lastErrorTime: now,
+      errorType,
+      canRetry,
+      isRecovering: false,
     });
 
     // Log detailed error information
     console.group('🚨 ERROR_BOUNDARY: Component Error Caught');
-    console.error('Error:', error);
+    console.error('Error:', processedError);
+    console.error('Error Type:', errorType);
     console.error('Error Info:', errorInfo);
     console.error('Component Stack:', errorInfo.componentStack);
     console.error('Error Count in Window:', this.errorHistory.length);
+    console.error('Can Retry:', canRetry);
     console.groupEnd();
 
     // Call optional error handler
     this.props.onError?.(error, errorInfo);
 
+    // Implement automatic recovery for certain error types
+    if (errorType === 'network' && canRetry) {
+      this.scheduleAutomaticRetry();
+    }
+
     // Check if this looks like a render loop
     if (this.isRenderLoopError(error)) {
       console.error('🚨 ERROR_BOUNDARY: Render loop detected in error message!');
       this.handleRenderLoop();
+    }
+  }
+
+  private categorizeError(error: Error): State['errorType'] {
+    if (error instanceof NetworkError) {
+      return 'network';
+    }
+    
+    if (error instanceof AppError && error.code === 'VALIDATION_ERROR') {
+      return 'validation';
+    }
+    
+    if (this.isRenderLoopError(error)) {
+      return 'render';
+    }
+    
+    return 'unknown';
+  }
+
+  private canRetryError(errorType: State['errorType'], errorCount: number): boolean {
+    switch (errorType) {
+      case 'network':
+        return errorCount < 3; // Allow more retries for network errors
+      case 'validation':
+        return errorCount < 2; // Limit retries for validation errors
+      case 'render':
+        return errorCount < 1; // Very limited retries for render errors
+      default:
+        return errorCount < 2; // Conservative for unknown errors
+    }
+  }
+
+  private scheduleAutomaticRetry(): void {
+    if (this.state.errorType === 'network' && this.state.canRetry) {
+      console.log('🔄 ERROR_BOUNDARY: Scheduling automatic retry for network error...');
+      
+      setTimeout(() => {
+        if (this.state.hasError && this.state.errorType === 'network') {
+          this.setState({ isRecovering: true });
+          setTimeout(() => this.handleRetry(), 1000);
+        }
+      }, 3000); // Wait 3 seconds before retrying
+    }
+  }
+
+  private getErrorIcon(): string {
+    switch (this.state.errorType) {
+      case 'network':
+        return '📡';
+      case 'render':
+        return '🔄';
+      case 'validation':
+        return '📝';
+      default:
+        return '⚠️';
+    }
+  }
+
+  private getErrorTitle(): string {
+    switch (this.state.errorType) {
+      case 'network':
+        return 'Connection Problem';
+      case 'render':
+        return 'Display Issue';
+      case 'validation':
+        return 'Data Issue';
+      default:
+        return 'Oops! Something went wrong';
+    }
+  }
+
+  private getErrorMessage(): string {
+    switch (this.state.errorType) {
+      case 'network':
+        return 'There was a problem connecting to our servers. Please check your internet connection and try again.';
+      case 'render':
+        return 'There was an issue displaying this page. The app might be in an unstable state.';
+      case 'validation':
+        return 'There was a problem with the data. Please refresh the page and try again.';
+      default:
+        return this.state.errorCount > 3 
+          ? "We've detected multiple errors. The app might be in an unstable state."
+          : "Don't worry, this happens sometimes. You can try refreshing the page.";
+    }
+  }
+
+  private getRetryButtonText(): string {
+    switch (this.state.errorType) {
+      case 'network':
+        return 'Retry Connection';
+      case 'render':
+        return 'Try Again';
+      case 'validation':
+        return 'Retry';
+      default:
+        return 'Try Again';
     }
   }
 
@@ -131,6 +250,7 @@ export class HardenedErrorBoundary extends Component<Props, State> {
       hasError: false,
       error: null,
       errorInfo: null,
+      isRecovering: false,
     });
   };
 
@@ -152,19 +272,36 @@ export class HardenedErrorBoundary extends Component<Props, State> {
           <div className="max-w-md w-full bg-card border border-border rounded-lg p-6 shadow-lg">
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 bg-destructive/10 rounded-full flex items-center justify-center">
-                <span className="text-2xl">⚠️</span>
+                <span className="text-2xl">
+                  {this.getErrorIcon()}
+                </span>
               </div>
               
               <h1 className="text-xl font-bold text-foreground mb-2">
-                Oops! Something went wrong
+                {this.getErrorTitle()}
               </h1>
               
               <p className="text-muted-foreground mb-4">
-                {this.state.errorCount > 3 
-                  ? "We've detected multiple errors. The app might be in an unstable state."
-                  : "Don't worry, this happens sometimes. You can try refreshing the page."
-                }
+                {this.getErrorMessage()}
               </p>
+
+              {/* Network status indicator for network errors */}
+              {this.state.errorType === 'network' && (
+                <div className="mb-4 p-3 bg-muted rounded-md">
+                  <div className="flex items-center justify-center gap-2">
+                    <NetworkStatusIndicator showOnlineStatus={true} />
+                  </div>
+                </div>
+              )}
+
+              {/* Recovery indicator */}
+              {this.state.isRecovering && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-blue-800 text-sm">
+                    🔄 Attempting automatic recovery...
+                  </p>
+                </div>
+              )}
 
               {process.env.NODE_ENV === 'development' && (
                 <details className="text-left mb-4 p-3 bg-muted rounded text-sm">
@@ -172,6 +309,9 @@ export class HardenedErrorBoundary extends Component<Props, State> {
                     Error Details (Development)
                   </summary>
                   <div className="mt-2 space-y-2">
+                    <div>
+                      <strong>Error Type:</strong> {this.state.errorType}
+                    </div>
                     <div>
                       <strong>Error:</strong>
                       <pre className="text-xs overflow-auto">{this.state.error?.message}</pre>
@@ -183,6 +323,9 @@ export class HardenedErrorBoundary extends Component<Props, State> {
                     <div>
                       <strong>Error Count:</strong> {this.state.errorCount}
                     </div>
+                    <div>
+                      <strong>Can Retry:</strong> {this.state.canRetry ? 'Yes' : 'No'}
+                    </div>
                   </div>
                 </details>
               )}
@@ -190,10 +333,15 @@ export class HardenedErrorBoundary extends Component<Props, State> {
               <div className="space-y-2">
                 <button
                   onClick={this.handleRetry}
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md transition-colors"
-                  disabled={this.state.errorCount > 3}
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!this.state.canRetry || this.state.isRecovering}
                 >
-                  {this.state.errorCount > 3 ? 'Too Many Errors' : 'Try Again'}
+                  {this.state.isRecovering 
+                    ? 'Recovering...' 
+                    : !this.state.canRetry 
+                      ? 'Too Many Errors' 
+                      : this.getRetryButtonText()
+                  }
                 </button>
                 
                 <button
@@ -204,7 +352,7 @@ export class HardenedErrorBoundary extends Component<Props, State> {
                 </button>
               </div>
 
-              {this.state.errorCount > 3 && (
+              {!this.state.canRetry && (
                 <p className="text-xs text-muted-foreground mt-4">
                   Multiple errors detected. Please reload the page to reset the application.
                 </p>

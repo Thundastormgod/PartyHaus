@@ -47,8 +47,12 @@ export const EventCreation = () => {
       host_id: user.id,
       name: formData.name,
       event_date: `${formData.date}T${formData.time}:00Z`,
+      date: `${formData.date}T${formData.time}:00Z`, // Add the date field for compatibility
       location: formData.location,
-      spotify_playlist_url: formData.spotify_playlist_url
+      spotify_playlist_url: formData.spotify_playlist_url,
+      is_public: false, // Default to private events
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
 
     try {

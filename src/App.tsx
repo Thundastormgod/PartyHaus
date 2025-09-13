@@ -12,6 +12,7 @@ import { EventCreation } from "@/components/EventCreation";
 import { EventManagement } from "@/components/EventManagement";
 import { QRScanner } from "@/components/QRScanner";
 import { GuestView } from "@/components/GuestView";
+import { OfflineNotification } from "@/components/OfflineNotification";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect } from "react";
 import { HardenedErrorBoundary } from '@/components/HardenedErrorBoundary';
@@ -87,6 +88,7 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <HardenedErrorBoundary>
+            <OfflineNotification />
             <div className="min-h-screen bg-background text-foreground">
               <Routes>
                 <Route path="/event/:eventId/guest/:guestId" element={<GuestRoute />} />
