@@ -3,13 +3,8 @@
   publish = "dist"
   command = "bun run build"
   
-  # Build environment
-  environment = { NODE_ENV = "production", CI = "true" }
-
-# Secrets scanning configuration
-[build.environment]
-  # Allow safe Vite environment variables in build output (these are meant to be public)
-  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,VITE_APP_NAME,VITE_APP_ENV"
+  # Build environment variables
+  environment = { NODE_ENV = "production", CI = "true", SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,VITE_APP_NAME,VITE_APP_ENV" }
 
 [build.processing]
   skip_processing = false
