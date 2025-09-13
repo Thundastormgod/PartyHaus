@@ -1,10 +1,10 @@
 [build]
   # Build settings
   publish = "dist"
-  command = "npm run build"
+  command = "npm install && npm run build"
   
   # Build environment variables
-  environment = { NODE_ENV = "production", CI = "true", SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,VITE_APP_NAME,VITE_APP_ENV", NODE_VERSION = "18" }
+  environment = { NODE_ENV = "production", CI = "true", SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,VITE_APP_NAME,VITE_APP_ENV" }
 
 [build.processing]
   skip_processing = false
