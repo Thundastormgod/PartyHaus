@@ -1,14 +1,18 @@
 # 🎉 PartyHaus - Event Management Platform
 
-[![Deploy to Netlify](https://github.com/Thundastormgod/PartyHaus/actions/workflows/deploy.yml/badge.svg)](https://github.com/Thundastormgod/PartyHaus/actions/workflows/deploy.yml)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/your-netlify-site-id/deploy-status.svg)](https://app.netlify.com/sites/your-netlify-site-name/deploys)
+[![Deploy to Vercel](https://github.com/Thund2. **Set up Vercel account** and create a new project
+3. **Configure GitHub secrets** in repository settings:
+   ```
+   VERCEL_TOKEN=your_vercel_token
+   VERCEL_ORG_ID=your_organization_id
+   VERCEL_PROJECT_ID=your_project_idmgod/PartyHaus/actions/workflows/deploy.yml/badge.svg)](https://github.com/Thundastormgod/PartyHaus/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A modern, secure event management platform built with React, TypeScript, and Supabase. Create, manage, and attend events with real-time updates and comprehensive security features.
 
 ## 🚀 Live Demo
 
-**Production**: [Your Netlify URL will appear here after deployment]
+**Production**: [Your Vercel URL will appear here after deployment]
 
 ## 📋 Features
 
@@ -78,7 +82,7 @@ VITE_APP_ENV=development
 
 ## 🚀 Deployment
 
-This project uses GitHub Actions for automated CI/CD deployment to Netlify.
+This project uses GitHub Actions for automated CI/CD deployment to Vercel.
 
 ### Automatic Deployment
 - **Production**: Push to `main` branch triggers production deployment
@@ -136,7 +140,7 @@ src/
 - **Sanitization**: DOMPurify for HTML content
 - **Authentication**: Supabase Auth with protected routes
 - **Error Boundaries**: Graceful error handling
-- **Security Headers**: CSP, HSTS, and more via Netlify
+- **Security Headers**: CSP, HSTS, and more via Vercel
 - **Dependency Auditing**: Automated security scans
 
 ## 🤝 Development Workflow
@@ -158,7 +162,7 @@ This project is built with:
 - **State Management**: Zustand
 - **Forms**: React Hook Form with Zod validation
 - **Testing**: Vitest, Testing Library
-- **Deployment**: Netlify with GitHub Actions CI/CD
+- **Deployment**: Vercel with GitHub Actions CI/CD
 - **Package Manager**: Bun (fast JavaScript runtime)
 
 ## 🚀 Quick Start
@@ -214,7 +218,7 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 - [Lovable](https://lovable.dev) - AI-powered development platform
 - [Supabase](https://supabase.com) - Backend as a Service
-- [Netlify](https://netlify.com) - Deployment and hosting
+- [Vercel](https://vercel.com) - Deployment and hosting
 - [shadcn/ui](https://ui.shadcn.com) - UI component library
 
 ---
