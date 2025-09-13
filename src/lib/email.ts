@@ -11,17 +11,27 @@ export interface EmailTemplate {
 
 export const sendEmail = async ({ to, subject, html }: EmailTemplate) => {
   try {
-    const response = await fetch('http://localhost:3001/api/send-email', {
+    // Use Vercel serverless function in production, fallback to localhost in development
+    const apiUrl = process.env.NODE_ENV === 'production' 
+      ? '/api/send-email' 
+      : 'http://localhost:3001/api/send-email';
+      
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ to, subject, html }),
     });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
     const data = await response.json();
     return { success: true, data };
   } catch (error) {
-  // ...removed bloatware error log...
+    console.error('Email sending failed:', error);
     return { success: false, error };
   }
 };

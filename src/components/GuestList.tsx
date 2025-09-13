@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, UserCheck, UserX, Mail, Copy, Check } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { sendEmail, emailTemplates } from '@/lib/email';
+import { useToast } from '@/hooks/use-toast';
 import format from 'date-fns/format';
 
 // Utility function to generate invitation URL
@@ -39,6 +40,16 @@ export const GuestList = ({ eventId }: GuestListProps) => {
 
   const handleAddGuest = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check for duplicate email in this event
+    const existingGuest = eventGuests.find(guest => 
+      guest.email.toLowerCase() === newGuest.email.toLowerCase()
+    );
+    
+    if (existingGuest) {
+      alert(`A guest with email "${newGuest.email}" is already invited to this event.`);
+      return;
+    }
     
     const { data, error } = await supabase
       .from('guests')
@@ -64,18 +75,22 @@ export const GuestList = ({ eventId }: GuestListProps) => {
             data.email,
             {
               name: currentEvent.name,
-              date: format(new Date(currentEvent.event_date), 'PPP'),
+              date: format(new Date(currentEvent.date), 'PPP'),
               location: currentEvent.location
             },
             invitationUrl
           ));
         } catch (emailError) {
           // Email sending failed, but don't break the guest addition flow
+          console.warn('Failed to send invitation email:', emailError);
         }
       }
       
       setNewGuest({ name: '', email: '' });
       setIsAddingGuest(false);
+    } else {
+      console.error('Failed to add guest:', error);
+      alert('Failed to add guest. Please try again.');
     }
   };
 
@@ -121,7 +136,7 @@ export const GuestList = ({ eventId }: GuestListProps) => {
               <TableCell>{guest.name}</TableCell>
               <TableCell>{guest.email}</TableCell>
               <TableCell>
-                {guest.is_checked_in ? (
+                {guest.status === 'checked_in' ? (
                   <span className="flex items-center text-green-500">
                     <UserCheck className="mr-2 h-4 w-4" />
                     Checked In
