@@ -25,23 +25,13 @@ A modern, secure event management platform built with React, TypeScript, and Sup
 - 🧪 **Fully Tested**: Unit and integration tests with Vitest
 - 🚀 **CI/CD Pipeline**: Automated deployment with GitHub Actions
 
-## Project info
+## 📝 Development
 
-**URL**: https://lovable.dev/projects/5999e35a-31b8-458a-9360-dcab07544e34
+You can edit this application in several ways:
 
-## How can I edit this code?
+**Local Development**
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/5999e35a-31b8-458a-9360-dcab07544e34) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+If you want to work locally using your own IDE, you can clone this repo and push changes.
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
@@ -175,12 +165,6 @@ This project is built with:
 
 ## 📝 Alternative Development Methods
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/5999e35a-31b8-458a-9360-dcab07544e34) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
 **Edit a file directly in GitHub**
 
 - Navigate to the desired file(s).
@@ -216,11 +200,10 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 ## 🙏 Acknowledgments
 
-- [Lovable](https://lovable.dev) - AI-powered development platform
 - [Supabase](https://supabase.com) - Backend as a Service
 - [Vercel](https://vercel.com) - Deployment and hosting
 - [shadcn/ui](https://ui.shadcn.com) - UI component library
 
 ---
 
-**Made with ❤️ using Lovable and modern web technologies**
+**Made with ❤️ using modern web technologies**
