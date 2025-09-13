@@ -4,7 +4,7 @@
   command = "npm run build"
   
   # Build environment variables
-  environment = { NODE_ENV = "production", CI = "true", SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,VITE_APP_NAME,VITE_APP_ENV" }
+  environment = { NODE_ENV = "production", CI = "true", SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,VITE_APP_NAME,VITE_APP_ENV", NODE_VERSION = "18" }
 
 [build.processing]
   skip_processing = false
