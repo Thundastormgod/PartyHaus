@@ -73,26 +73,26 @@
 
 # Environment-specific settings
 [context.production]
-  command = "bun run build"
+  command = "npm run build"
   [context.production.environment]
     NODE_ENV = "production"
     VITE_APP_ENV = "production"
 
 [context.deploy-preview]
-  command = "bun run build"
+  command = "npm run build"
   [context.deploy-preview.environment]
     NODE_ENV = "production"
     VITE_APP_ENV = "preview"
 
 [context.branch-deploy]
-  command = "bun run build"
+  command = "npm run build"
   [context.branch-deploy.environment]
     NODE_ENV = "production"
     VITE_APP_ENV = "development"
 
 # Netlify Dev settings for local development
 [dev]
-  command = "bun run dev"
+  command = "npm run dev"
   port = 5173
   publish = "dist"
   autoLaunch = false
