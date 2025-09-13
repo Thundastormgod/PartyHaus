@@ -80,12 +80,18 @@ export const useAuth = () => {
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, name?: string) => {
     try {
       usePartyStore.getState().setLoading(true);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            name: name || email.split('@')[0], // Use name or email prefix as fallback
+            full_name: name || email.split('@')[0]
+          }
+        }
       });
       if (error) throw error;
       return { user: data.user, error: null };

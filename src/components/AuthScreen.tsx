@@ -80,7 +80,7 @@ export const AuthScreen = () => {
         // Don't manually set user here - the auth state change listener will handle it
         // This prevents race conditions and infinite reloads
       } else {
-        const { user, error } = await signUp(email, password);
+        const { user, error } = await signUp(email, password, name);
         if (error) throw error;
         if (user) {
           alert('Please check your email to confirm your account!');
