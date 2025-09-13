@@ -1,0 +1,234 @@
+name: 🚀 Deploy to Netlify
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+  BUN_VERSION: 'latest'
+
+jobs:
+  # Lint and Test Job
+  test:
+    name: 🧪 Test & Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📂 Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: 🏗️ Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+          
+      - name: 📦 Cache dependencies
+        uses: actions/cache@v3
+        id: bun-cache
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+            
+      - name: 📥 Install dependencies
+        run: bun install --frozen-lockfile
+        
+      - name: 🔍 Lint code
+        run: bun run lint
+        
+      - name: 🧪 Run tests
+        run: bun run test:run
+        
+      - name: 📊 Upload coverage reports
+        uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: PartyHaus Coverage
+          fail_ci_if_error: false
+
+  # Security Audit Job
+  security:
+    name: 🔒 Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📂 Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: 🏗️ Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+          
+      - name: 🔍 Security audit
+        run: bun audit
+        continue-on-error: true
+
+  # Build and Deploy Job
+  deploy:
+    name: 🚀 Build & Deploy
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.deploy-url }}
+    
+    steps:
+      - name: 📂 Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: 🏗️ Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+          
+      - name: 📦 Cache dependencies
+        uses: actions/cache@v3
+        id: bun-cache
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+            
+      - name: 📥 Install dependencies
+        run: bun install --frozen-lockfile
+        
+      - name: 🔧 Create environment file
+        run: |
+          echo "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}" >> .env.production
+          echo "VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}" >> .env.production
+          echo "VITE_APP_ENV=production" >> .env.production
+        
+      - name: 🏗️ Build application
+        run: bun run build
+        env:
+          CI: true
+          NODE_ENV: production
+          
+      - name: 📦 Prepare deployment artifacts
+        run: |
+          # Create deployment directory
+          mkdir -p deployment
+          cp -r dist/* deployment/
+          
+          # Generate build info
+          echo "{
+            \"buildTime\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+            \"commitSha\": \"${{ github.sha }}\",
+            \"commitRef\": \"${{ github.ref }}\",
+            \"buildNumber\": \"${{ github.run_number }}\",
+            \"repository\": \"${{ github.repository }}\"
+          }" > deployment/build-info.json
+          
+      - name: 🚀 Deploy to Netlify
+        id: deploy
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: './deployment'
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "🚀 Deploy from GitHub Actions - ${{ github.event.head_commit.message }}"
+          enable-pull-request-comment: true
+          enable-commit-comment: true
+          overwrites-pull-request-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        timeout-minutes: 10
+        
+      - name: 🎉 Deployment Success
+        if: success()
+        run: |
+          echo "✅ Successfully deployed to Netlify!"
+          echo "🌐 Deploy URL: ${{ steps.deploy.outputs.deploy-url }}"
+          echo "📋 Deploy logs: ${{ steps.deploy.outputs.logs-url }}"
+
+  # Preview Deploy for PRs
+  preview:
+    name: 🔍 Preview Deploy
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.event_name == 'pull_request'
+    
+    environment:
+      name: preview
+    
+    steps:
+      - name: 📂 Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: 🏗️ Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+          
+      - name: 📥 Install dependencies
+        run: bun install --frozen-lockfile
+        
+      - name: 🔧 Create environment file
+        run: |
+          echo "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}" >> .env.production
+          echo "VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}" >> .env.production
+          echo "VITE_APP_ENV=preview" >> .env.production
+        
+      - name: 🏗️ Build application
+        run: bun run build
+        env:
+          CI: true
+          NODE_ENV: production
+          
+      - name: 🚀 Deploy Preview to Netlify
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: './dist'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "🔍 Preview deploy for PR #${{ github.event.number }}"
+          enable-pull-request-comment: true
+          enable-commit-comment: false
+          overwrites-pull-request-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        timeout-minutes: 10
+
+  # Post-Deploy Health Check
+  health-check:
+    name: 🏥 Health Check
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: 🏥 Check deployment health
+        run: |
+          # Wait a moment for deployment to be ready
+          sleep 30
+          
+          # Basic health check (you can customize this URL)
+          DEPLOY_URL="${{ needs.deploy.outputs.deploy-url }}"
+          
+          if [ -n "$DEPLOY_URL" ]; then
+            echo "🔍 Checking health of: $DEPLOY_URL"
+            
+            # Check if site responds with 200
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOY_URL" || echo "000")
+            
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Health check passed! Site is responding correctly."
+            else
+              echo "❌ Health check failed! HTTP status: $STATUS"
+              exit 1
+            fi
+          else
+            echo "⚠️ No deploy URL available for health check"
+          fi

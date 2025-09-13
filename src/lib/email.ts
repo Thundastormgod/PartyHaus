@@ -1,8 +1,7 @@
 import { Resend } from 'resend';
 
-// Initialize Resend only if API key is available
-const resendApiKey = import.meta.env.VITE_RESEND_API_KEY;
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
+// Email service that uses the backend API instead of exposing API keys
+// No longer exposing Resend API key on frontend
 
 export interface EmailTemplate {
   to: string;
