@@ -1,13 +1,14 @@
 {
   "version": 2,
+  "functions": {
+    "api/*.ts": {
+      "runtime": "@vercel/node"
+    }
+  },
   "builds": [
     {
       "src": "dist/**",
       "use": "@vercel/static"
-    },
-    {
-      "src": "api/*.ts",
-      "use": "@vercel/node"
     }
   ],
   "routes": [
