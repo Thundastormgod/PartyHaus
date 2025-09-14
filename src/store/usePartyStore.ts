@@ -18,10 +18,16 @@ export interface Event {
   host_id: string;
   name: string;
   description?: string;
-  date: string;
+  // Legacy field - maintained for backward compatibility
+  date?: string;
+  // New multi-day support fields
+  start_date: string;
+  end_date: string;
+  event_type: 'single_day' | 'multi_day';
   location?: string;
   max_guests?: number;
   is_public: boolean;
+  invite_image_url?: string;
   created_at: string;
   updated_at: string;
 }

@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Plus, UserCheck, UserX, Mail, Copy, Check } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { sendEmail, emailTemplates } from '@/lib/email';
+import { sendEmailWithTracking, sendEmail, emailTemplates } from '@/lib/email-tracking';
 import { useToast } from '@/hooks/use-toast';
 import format from 'date-fns/format';
 
@@ -30,6 +30,7 @@ interface GuestListProps {
 
 export const GuestList = ({ eventId }: GuestListProps) => {
   const { guests, currentEvent } = usePartyStore();
+  const { toast } = useToast();
   const [isAddingGuest, setIsAddingGuest] = useState(false);
   const [newGuest, setNewGuest] = useState({ name: '', email: '' });
   const [selectedGuest, setSelectedGuest] = useState<string | null>(null);
@@ -71,18 +72,40 @@ export const GuestList = ({ eventId }: GuestListProps) => {
       if (currentEvent) {
         const invitationUrl = generateInvitationUrl(eventId, data.id);
         try {
-          await sendEmail(emailTemplates.eventInvitation(
-            data.email,
+          const emailResult = await sendEmailWithTracking(
+            emailTemplates.eventInvitation(
+              data.email,
+              {
+                name: currentEvent.name,
+                date: format(new Date(currentEvent.date), 'PPP'),
+                location: currentEvent.location
+              },
+              invitationUrl,
+              currentEvent.invite_image_url
+            ),
             {
-              name: currentEvent.name,
-              date: format(new Date(currentEvent.date), 'PPP'),
-              location: currentEvent.location
-            },
-            invitationUrl
-          ));
+              eventId: currentEvent.id,
+              guestId: data.id,
+              emailType: 'invitation',
+              recipientEmail: data.email,
+              subject: `🎉 You're Invited to ${currentEvent.name}!`
+            }
+          );
+          
+          // Show success toast with tracking info
+          toast({
+            title: "Invitation sent! 🎉",
+            description: `Email invitation sent to ${data.name} with tracking enabled`,
+          });
+          
         } catch (emailError) {
           // Email sending failed, but don't break the guest addition flow
           console.warn('Failed to send invitation email:', emailError);
+          toast({
+            title: "Guest added, but email failed",
+            description: `${data.name} was added to the guest list, but we couldn't send the invitation email. You can copy the invitation link manually.`,
+            variant: "destructive",
+          });
         }
       }
       
@@ -106,8 +129,51 @@ export const GuestList = ({ eventId }: GuestListProps) => {
       await navigator.clipboard.writeText(invitationUrl);
       setCopiedGuestId(guestId);
       setTimeout(() => setCopiedGuestId(null), 2000);
+      toast({
+        title: "Link copied! 📋",
+        description: "Invitation link copied to clipboard",
+      });
     } catch (error) {
       console.warn('Failed to copy to clipboard:', error);
+      toast({
+        title: "Copy failed",
+        description: "Unable to copy to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const sendTestEmail = async () => {
+    if (!currentEvent) return;
+    
+    try {
+      await sendEmail({
+        to: 'thecommodore30@gmail.com', // Your verified email for testing
+        subject: `✅ Test Email from ${currentEvent.name} - PartyHaus Working!`,
+        html: `
+          <div style="font-family: system-ui, sans-serif; padding: 20px;">
+            <h1 style="color: #6C63FF;">Test Email ✅</h1>
+            <p>This is a test email from PartyHaus!</p>
+            <p><strong>Event:</strong> ${currentEvent.name}</p>
+            <p><strong>Date:</strong> ${format(new Date(currentEvent.date), 'PPP')}</p>
+            <p><strong>Location:</strong> ${currentEvent.location}</p>
+            <p>If you received this email, the PartyHaus email system is working perfectly! 🎉</p>
+          </div>
+        `,
+      });
+      
+      toast({
+        title: "Test email sent! ✅",
+        description: "Check your inbox - the email system is working!",
+      });
+      
+    } catch (error) {
+      console.error('Test email failed:', error);
+      toast({
+        title: "Test email failed ❌",
+        description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive",
+      });
     }
   };
 
@@ -115,10 +181,20 @@ export const GuestList = ({ eventId }: GuestListProps) => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Guest List</h3>
-        <Button onClick={() => setIsAddingGuest(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Guest
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={sendTestEmail}
+            variant="outline"
+            size="sm"
+          >
+            <Mail className="mr-2 h-4 w-4" />
+            Test Email
+          </Button>
+          <Button onClick={() => setIsAddingGuest(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Guest
+          </Button>
+        </div>
       </div>
 
       <Table>

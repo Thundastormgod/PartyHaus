@@ -9,10 +9,17 @@ export const eventService = {
         .from('events')
         .select('*')
         .eq('host_id', userId)
-        .order('event_date', { ascending: true });
+        .order('start_date', { ascending: true });
 
       if (error) throw error;
-      return events;
+      
+      // Ensure backward compatibility for events without new fields
+      return events.map(event => ({
+        ...event,
+        start_date: event.start_date || event.event_date,
+        end_date: event.end_date || event.event_date,
+        event_type: event.event_type || 'single_day'
+      }));
     } catch (error) {
   // ...removed bloatware error log...
       return [];
@@ -96,7 +103,14 @@ export const eventService = {
         .eq('id', id)
         .single();
       if (error) throw error;
-      return data;
+      
+      // Ensure backward compatibility for events without new fields
+      return {
+        ...data,
+        start_date: data.start_date || data.event_date,
+        end_date: data.end_date || data.event_date,
+        event_type: data.event_type || 'single_day'
+      };
     } catch (error) {
       return null;
     }

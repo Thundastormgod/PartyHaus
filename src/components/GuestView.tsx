@@ -11,9 +11,10 @@ import { QRCodeCanvas } from 'qrcode.react';
 
 interface GuestViewProps {
   guestId: string;
+  eventId?: string;
 }
 
-export const GuestView = ({ guestId }: GuestViewProps) => {
+export const GuestView = ({ guestId, eventId }: GuestViewProps) => {
   const { events, guests, currentEvent } = usePartyStore();
   const setGuests = usePartyStore((s) => s.setGuests);
   const setEvents = usePartyStore((s) => s.setEvents);

@@ -1,7 +1,7 @@
+// Enhanced email service with comprehensive status tracking
 import { Resend } from 'resend';
-
-// Email service that uses the backend API instead of exposing API keys
-// No longer exposing Resend API key on frontend
+import { supabase } from './supabase';
+import { getEmailOptimizedImageUrl } from './image-utils';
 
 export interface EmailTemplate {
   to: string;
@@ -9,9 +9,134 @@ export interface EmailTemplate {
   html: string;
 }
 
+export interface EmailLogData {
+  eventId?: string;
+  guestId?: string;
+  emailType: 'invitation' | 'confirmation' | 'reminder' | 'test';
+  recipientEmail: string;
+  subject: string;
+}
+
+export interface EmailStatus {
+  id: string;
+  status: 'pending' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained' | 'failed';
+  sentAt?: string;
+  deliveredAt?: string;
+  openedAt?: string;
+  clickedAt?: string;
+  bouncedAt?: string;
+  errorMessage?: string;
+}
+
+// Enhanced email sending with database logging
+export const sendEmailWithTracking = async ({ to, subject, html }: EmailTemplate, logData: EmailLogData) => {
+  try {
+    // First, create email log entry
+    const { data: emailLog, error: logError } = await supabase
+      .from('email_logs')
+      .insert({
+        event_id: logData.eventId,
+        guest_id: logData.guestId,
+        email_type: logData.emailType,
+        recipient_email: logData.recipientEmail,
+        subject: logData.subject,
+        status: 'pending'
+      })
+      .select()
+      .single();
+
+    if (logError) {
+      console.error('Failed to create email log:', logError);
+      throw new Error('Database logging failed');
+    }
+
+    console.log('📝 Email log created:', emailLog.id);
+
+    // Use Vercel serverless function in production, fallback to localhost in development
+    const apiUrl = process.env.NODE_ENV === 'production' 
+      ? '/api/email' 
+      : 'http://localhost:3001/api/send-email';
+      
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ to, subject, html }),
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      // Update email log with failure
+      await supabase
+        .from('email_logs')
+        .update({
+          status: 'failed',
+          error_message: data.error || `HTTP error! status: ${response.status}`
+        })
+        .eq('id', emailLog.id);
+
+      throw new Error(data.error || `HTTP error! status: ${response.status}`);
+    }
+    
+    if (!data.success) {
+      // Update email log with failure
+      await supabase
+        .from('email_logs')
+        .update({
+          status: 'failed',
+          error_message: data.error || 'Email sending failed'
+        })
+        .eq('id', emailLog.id);
+
+      throw new Error(data.error || 'Email sending failed');
+    }
+    
+    // Update email log with success and Resend email ID
+    const resendEmailId = data.data?.id || data.id;
+    await supabase
+      .from('email_logs')
+      .update({
+        status: 'sent',
+        resend_email_id: resendEmailId,
+        sent_at: new Date().toISOString()
+      })
+      .eq('id', emailLog.id);
+
+    // Update guest email status if guest_id provided
+    if (logData.guestId) {
+      await supabase
+        .from('guests')
+        .update({
+          email_status: 'sent',
+          last_email_sent_at: new Date().toISOString(),
+          email_log_id: emailLog.id
+        })
+        .eq('id', logData.guestId);
+    }
+    
+    console.log('✅ Email sent successfully with tracking:', {
+      emailLogId: emailLog.id,
+      resendEmailId,
+      recipient: to
+    });
+    
+    return {
+      ...data,
+      emailLogId: emailLog.id,
+      resendEmailId
+    };
+    
+  } catch (error) {
+    console.error('❌ Email sending failed:', error);
+    throw error;
+  }
+};
+
+// Fallback for existing email function (backward compatibility)
 export const sendEmail = async ({ to, subject, html }: EmailTemplate) => {
   try {
-    // Use Vercel serverless function in production, fallback to localhost in development
     const apiUrl = process.env.NODE_ENV === 'production' 
       ? '/api/email' 
       : 'http://localhost:3001/api/send-email';
@@ -40,6 +165,170 @@ export const sendEmail = async ({ to, subject, html }: EmailTemplate) => {
   } catch (error) {
     console.error('Email sending failed:', error);
     throw error; // Re-throw to allow caller to handle
+  }
+};
+
+// Get email status by email log ID
+export const getEmailStatus = async (emailLogId: string): Promise<EmailStatus | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('email_logs')
+      .select(`
+        id,
+        status,
+        sent_at,
+        delivered_at,
+        opened_at,
+        clicked_at,
+        bounced_at,
+        error_message
+      `)
+      .eq('id', emailLogId)
+      .single();
+
+    if (error) {
+      console.error('Failed to get email status:', error);
+      return null;
+    }
+
+    return {
+      id: data.id,
+      status: data.status,
+      sentAt: data.sent_at,
+      deliveredAt: data.delivered_at,
+      openedAt: data.opened_at,
+      clickedAt: data.clicked_at,
+      bouncedAt: data.bounced_at,
+      errorMessage: data.error_message
+    };
+  } catch (error) {
+    console.error('Error fetching email status:', error);
+    return null;
+  }
+};
+
+// Get email analytics for an event
+export const getEmailAnalytics = async (eventId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('email_analytics')
+      .select('*')
+      .eq('event_id', eventId)
+      .single();
+
+    if (error) {
+      console.error('Failed to get email analytics:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error fetching email analytics:', error);
+    return null;
+  }
+};
+
+// Get detailed email logs for an event
+export const getEventEmailLogs = async (eventId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('email_logs')
+      .select(`
+        *,
+        guests:guest_id (
+          name,
+          email
+        )
+      `)
+      .eq('event_id', eventId)
+      .order('sent_at', { ascending: false });
+
+    if (error) {
+      console.error('Failed to get email logs:', error);
+      return [];
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error fetching email logs:', error);
+    return [];
+  }
+};
+
+// Resend failed email
+export const resendEmail = async (emailLogId: string) => {
+  try {
+    // Get original email log
+    const { data: emailLog, error: logError } = await supabase
+      .from('email_logs')
+      .select(`
+        *,
+        guests:guest_id (
+          name,
+          email
+        ),
+        events:event_id (
+          name,
+          event_date,
+          location,
+          invite_image_url
+        )
+      `)
+      .eq('id', emailLogId)
+      .single();
+
+    if (logError || !emailLog) {
+      throw new Error('Email log not found');
+    }
+
+    // Determine email template and data
+    let template;
+    const eventDetails = {
+      name: emailLog.events?.name || 'Event',
+      date: new Date(emailLog.events?.event_date || '').toLocaleDateString(),
+      location: emailLog.events?.location || 'TBD'
+    };
+
+    switch (emailLog.email_type) {
+      case 'invitation':
+        const invitationUrl = `${window.location.origin}/rsvp/${emailLog.event_id}/${emailLog.guest_id}`;
+        template = emailTemplates.eventInvitation(
+          emailLog.recipient_email,
+          eventDetails,
+          invitationUrl,
+          emailLog.events?.invite_image_url
+        );
+        break;
+      case 'confirmation':
+        template = emailTemplates.rsvpConfirmation(
+          emailLog.recipient_email,
+          eventDetails,
+          emailLog.guests?.name || 'Guest'
+        );
+        break;
+      case 'reminder':
+        template = emailTemplates.eventReminder(
+          emailLog.recipient_email,
+          eventDetails,
+          emailLog.guests?.name || 'Guest'
+        );
+        break;
+      default:
+        throw new Error('Unsupported email type for resend');
+    }
+
+    // Send email with tracking
+    return await sendEmailWithTracking(template, {
+      eventId: emailLog.event_id,
+      guestId: emailLog.guest_id,
+      emailType: emailLog.email_type as any,
+      recipientEmail: emailLog.recipient_email,
+      subject: template.subject
+    });
+
+  } catch (error) {
+    console.error('Failed to resend email:', error);
+    throw error;
   }
 };
 
@@ -94,7 +383,7 @@ export const emailTemplates = {
     `,
   }),
 
-  eventInvitation: (email: string, eventDetails: { name: string, date: string, location: string }, rsvpUrl: string) => ({
+  eventInvitation: (email: string, eventDetails: { name: string, date: string, location: string }, rsvpUrl: string, inviteImageUrl?: string) => ({
     to: email,
     subject: `🎉 You're Invited to ${eventDetails.name}!`,
     html: `
@@ -117,7 +406,7 @@ export const emailTemplates = {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
             color: #1a1b41;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: ${inviteImageUrl ? '#f5f5f5' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};
             padding: 20px;
           }
           
@@ -125,12 +414,51 @@ export const emailTemplates = {
             max-width: 600px;
             margin: 0 auto;
             background: white;
-            border-radius: 20px;
+            border-radius: ${inviteImageUrl ? '12px' : '20px'};
             overflow: hidden;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
           }
           
-          .header {
+          /* Custom invite image header */
+          .custom-invite-header {
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px 12px 0 0;
+          }
+          
+          .custom-invite-image {
+            width: 100%;
+            height: auto;
+            max-height: 400px;
+            object-fit: cover;
+            display: block;
+          }
+          
+          .invite-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            padding: 30px 20px 20px;
+            color: white;
+          }
+          
+          .invite-overlay h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+          }
+          
+          .invite-overlay p {
+            font-size: 16px;
+            opacity: 0.95;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+          }
+          
+          /* Standard header (when no custom image) */
+          .standard-header {
             background: linear-gradient(135deg, #6C63FF 0%, #FF6B6B 100%);
             padding: 40px 30px;
             text-align: center;
@@ -138,7 +466,7 @@ export const emailTemplates = {
             overflow: hidden;
           }
           
-          .header::before {
+          .standard-header::before {
             content: '';
             position: absolute;
             top: -50%;
@@ -161,7 +489,7 @@ export const emailTemplates = {
             z-index: 1;
           }
           
-          .header h1 {
+          .standard-header h1 {
             color: white;
             font-size: 32px;
             font-weight: 700;
@@ -171,7 +499,7 @@ export const emailTemplates = {
             text-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
           
-          .header p {
+          .standard-header p {
             color: rgba(255,255,255,0.9);
             font-size: 18px;
             font-weight: 500;
@@ -180,7 +508,7 @@ export const emailTemplates = {
           }
           
           .content {
-            padding: 40px 30px;
+            padding: ${inviteImageUrl ? '30px 30px 40px' : '40px 30px'};
           }
           
           .invitation-text {
@@ -221,7 +549,7 @@ export const emailTemplates = {
           }
           
           .event-title {
-            font-size: 28px;
+            font-size: ${inviteImageUrl ? '24px' : '28px'};
             font-weight: 700;
             color: #1a1b41;
             margin-bottom: 20px;
@@ -325,39 +653,48 @@ export const emailTemplates = {
           
           .footer {
             background: #f8f9ff;
-            padding: 25px 30px;
+            padding: ${inviteImageUrl ? '20px 30px' : '25px 30px'};
             text-align: center;
             border-top: 1px solid #e1e8f0;
           }
           
           .footer p {
             color: #666;
-            font-size: 14px;
-            margin-bottom: 8px;
+            font-size: ${inviteImageUrl ? '12px' : '14px'};
+            margin-bottom: ${inviteImageUrl ? '4px' : '8px'};
           }
           
           .footer .brand {
             color: #6C63FF;
             font-weight: 600;
             text-decoration: none;
+            opacity: ${inviteImageUrl ? '0.8' : '1'};
           }
           
           @media (max-width: 600px) {
             .container {
               margin: 10px;
-              border-radius: 15px;
+              border-radius: ${inviteImageUrl ? '8px' : '15px'};
             }
             
-            .header {
+            .standard-header {
               padding: 30px 20px;
             }
             
-            .header h1 {
+            .standard-header h1 {
               font-size: 26px;
             }
             
+            .invite-overlay {
+              padding: 20px 15px 15px;
+            }
+            
+            .invite-overlay h1 {
+              font-size: 24px;
+            }
+            
             .content {
-              padding: 30px 20px;
+              padding: ${inviteImageUrl ? '25px 20px 30px' : '30px 20px'};
             }
             
             .event-card {
@@ -365,7 +702,7 @@ export const emailTemplates = {
             }
             
             .event-title {
-              font-size: 24px;
+              font-size: ${inviteImageUrl ? '20px' : '24px'};
             }
             
             .features {
@@ -376,22 +713,45 @@ export const emailTemplates = {
               padding: 14px 30px;
               font-size: 16px;
             }
+            
+            .custom-invite-image {
+              max-height: 300px;
+            }
           }
         </style>
       </head>
       <body>
         <div class="container">
-          <div class="header">
-            <div class="party-icon">🎉</div>
-            <h1>You're Invited!</h1>
-            <p>Get ready for an amazing party experience</p>
-          </div>
+          ${inviteImageUrl ? `
+            <!-- Custom Invite Image Header -->
+            <div class="custom-invite-header">
+              <img src="${getEmailOptimizedImageUrl(inviteImageUrl)}" alt="Event Invitation" class="custom-invite-image" />
+              <div class="invite-overlay">
+                <h1>You're Invited!</h1>
+                <p>A special invitation just for you</p>
+              </div>
+            </div>
+          ` : `
+            <!-- Standard Header -->
+            <div class="standard-header">
+              <div class="party-icon">🎉</div>
+              <h1>You're Invited!</h1>
+              <p>Get ready for an amazing party experience</p>
+            </div>
+          `}
           
           <div class="content">
-            <div class="invitation-text">
-              <h2>Join us for an unforgettable celebration!</h2>
-              <p>We're excited to invite you to our special event. Don't miss out on the fun, games, and great company!</p>
-            </div>
+            ${!inviteImageUrl ? `
+              <div class="invitation-text">
+                <h2>Join us for an unforgettable celebration!</h2>
+                <p>We're excited to invite you to our special event. Don't miss out on the fun, games, and great company!</p>
+              </div>
+            ` : `
+              <div class="invitation-text">
+                <h2>Event Details</h2>
+                <p>Mark your calendar and get ready for an amazing time!</p>
+              </div>
+            `}
             
             <div class="event-card">
               <div class="event-title">${eventDetails.name}</div>
@@ -418,24 +778,27 @@ export const emailTemplates = {
               </a>
             </div>
             
-            <div class="features">
-              <div class="feature">
-                <div class="feature-icon">🎯</div>
-                <div class="feature-text">Interactive Games</div>
+            ${!inviteImageUrl ? `
+              <div class="features">
+                <div class="feature">
+                  <div class="feature-icon">🎯</div>
+                  <div class="feature-text">Interactive Games</div>
+                </div>
+                <div class="feature">
+                  <div class="feature-icon">🎵</div>
+                  <div class="feature-text">Spotify Playlists</div>
+                </div>
+                <div class="feature">
+                  <div class="feature-icon">📱</div>
+                  <div class="feature-text">QR Check-in</div>
+                </div>
               </div>
-              <div class="feature-icon">🎵</div>
-                <div class="feature-text">Spotify Playlists</div>
-              </div>
-              <div class="feature">
-                <div class="feature-icon">📱</div>
-                <div class="feature-text">QR Check-in</div>
-              </div>
-            </div>
+            ` : ''}
           </div>
           
           <div class="footer">
             <p>Powered by <a href="#" class="brand">PartyHaus</a></p>
-            <p>Plan. Party. Perfect.</p>
+            ${!inviteImageUrl ? '<p>Plan. Party. Perfect.</p>' : ''}
           </div>
         </div>
       </body>

@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { usePartyStore } from "@/store/usePartyStore";
 import { AuthScreen } from "@/components/AuthScreen";
+import { LandingPage } from "@/components/LandingPage";
 import { useAuth } from "@/hooks/use-auth";
 import { Dashboard } from "@/components/Dashboard";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -13,15 +14,15 @@ import { EventManagement } from "@/components/EventManagement";
 import { QRScanner } from "@/components/QRScanner";
 import { GuestView } from "@/components/GuestView";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { HardenedErrorBoundary } from '@/components/HardenedErrorBoundary';
 import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom';
 
 const queryClient = new QueryClient();
 
 const GuestRoute = () => {
-  const { guestId } = useParams<{ guestId: string }>();
-  return <GuestView guestId={guestId || ''} />;
+  const { eventId, guestId } = useParams<{ eventId: string; guestId: string }>();
+  return <GuestView guestId={guestId || ''} eventId={eventId || ''} />;
 };
 
 const App = () => {
@@ -33,14 +34,39 @@ const App = () => {
   const events = usePartyStore((s) => s.events);
   const { isLoading } = useAuth();
 
+  // New state for landing/auth flow
+  const [appMode, setAppMode] = useState<'landing' | 'auth' | 'app'>('landing');
+  const [userIntent, setUserIntent] = useState<'create_event' | 'join_event' | 'explore_features'>('explore_features');
+
   useEffect(() => {
-    // Simple routing logic - no complex conditions
-    if (user && currentPage === 'auth') {
-      usePartyStore.getState().setCurrentPage('dashboard');
-    } else if (!user && currentPage !== 'auth') {
-      usePartyStore.getState().setCurrentPage('auth');
+    // Enhanced routing logic with landing page support
+    if (user) {
+      setAppMode('app');
+      if (currentPage === 'auth' || currentPage === 'landing') {
+        usePartyStore.getState().setCurrentPage('dashboard');
+      }
+    } else {
+      // If no user and we're in app mode, show auth directly
+      if (appMode === 'app') {
+        setAppMode('auth');
+      }
+      // Don't auto-redirect to auth from landing - let user choose
     }
-  }, [user?.id, currentPage]);
+  }, [user?.id, currentPage, appMode]);
+
+  const handleGetStarted = (intent: 'create_event' | 'join_event' | 'explore_features' = 'create_event') => {
+    setUserIntent(intent);
+    setAppMode('auth');
+  };
+
+  const handleSignIn = () => {
+    setUserIntent('explore_features');
+    setAppMode('auth');
+  };
+
+  const handleBackToLanding = () => {
+    setAppMode('landing');
+  };
 
   if (isLoading) {
     return <Loading fullScreen size="lg" />;
@@ -53,15 +79,33 @@ const App = () => {
   }
 
   const renderPage = () => {
+    // Landing and Auth Flow
     if (!user) {
-      return <AuthScreen />;
+      if (appMode === 'landing') {
+        return (
+          <LandingPage 
+            onGetStarted={() => handleGetStarted('create_event')}
+            onSignIn={handleSignIn}
+          />
+        );
+      } else {
+        return (
+          <AuthScreen 
+            initialMode="auth"
+            userIntent={userIntent}
+            onBackToLanding={handleBackToLanding}
+          />
+        );
+      }
     }
+
     // Handle guest view with dynamic ID
     if (currentPage.startsWith('guest-view-')) {
       const guestId = currentPage.replace('guest-view-', '');
       return <GuestView guestId={guestId} />;
     }
-    // Protected routes
+
+    // Protected routes for authenticated users
     return (
       <ProtectedRoute>
         {(() => {
@@ -93,7 +137,7 @@ const App = () => {
                 <Route path="*" element={
                   <AnimatePresence mode="wait">
                     <motion.div
-                      key={currentPage}
+                      key={appMode + currentPage}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
