@@ -82,16 +82,15 @@ This project uses GitHub Actions for automated CI/CD deployment to Vercel.
 ### Setup Deployment
 
 1. **Fork this repository**
-2. **Set up Netlify account** and create a new site
-3. **Configure GitHub Secrets** in your repository settings:
+2. **Set up Vercel account** and connect to your GitHub repository
+3. **Configure Environment Variables** in your Vercel project settings:
    ```
-   NETLIFY_AUTH_TOKEN=your_netlify_token
-   NETLIFY_SITE_ID=your_netlify_site_id
    VITE_SUPABASE_URL=your_supabase_url
    VITE_SUPABASE_ANON_KEY=your_supabase_key
    VITE_RESEND_API_KEY=your_resend_key
+   VITE_APP_ENV=production
    ```
-4. **Push to main branch** to trigger first deployment
+4. **Deploy automatically** - Vercel deploys on every push to main
 
 For detailed setup instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
