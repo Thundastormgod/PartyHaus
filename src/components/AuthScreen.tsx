@@ -172,25 +172,25 @@ export const AuthScreen = ({
 
     if (mode === 'landing') {
       return (
-        <div className="hero-cosmic">
-          {/* Animated Background Elements */}
-          <div className="absolute inset-0 opacity-20">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50 relative overflow-hidden">
+          {/* Soft Background Elements */}
+          <div className="absolute inset-0 opacity-30">
             <MotionDiv 
-              className="absolute top-20 left-20 w-32 h-32 rounded-full bg-electric-purple blur-3xl"
+              className="absolute top-20 left-20 w-32 h-32 rounded-full bg-orange-200 blur-3xl"
               {...(process.env.NODE_ENV !== 'test' && {
                 animate: { scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] },
                 transition: { duration: 4, repeat: Infinity }
               })}
             />
             <MotionDiv 
-              className="absolute top-40 right-32 w-24 h-24 rounded-full bg-electric-cyan blur-2xl"
+              className="absolute top-40 right-32 w-24 h-24 rounded-full bg-orange-300 blur-2xl"
               {...(process.env.NODE_ENV !== 'test' && {
                 animate: { scale: [1.2, 1, 1.2], opacity: [0.4, 0.7, 0.4] },
                 transition: { duration: 3, repeat: Infinity, delay: 1 }
               })}
             />
             <MotionDiv 
-              className="absolute bottom-32 left-1/4 w-40 h-40 rounded-full bg-electric-gold blur-3xl"
+              className="absolute bottom-32 left-1/4 w-40 h-40 rounded-full bg-orange-100 blur-3xl"
               {...(process.env.NODE_ENV !== 'test' && {
                 animate: { scale: [1, 1.3, 1], opacity: [0.2, 0.5, 0.2] },
                 transition: { duration: 5, repeat: Infinity, delay: 2 }
@@ -198,7 +198,7 @@ export const AuthScreen = ({
             />
           </div>
 
-          <div className="hero-content">
+          <div className="container mx-auto px-6 py-16 relative z-10">
             {/* Logo and Branding */}
             <MotionDiv
               {...(process.env.NODE_ENV !== 'test' && {
@@ -215,15 +215,15 @@ export const AuthScreen = ({
                   transition: { type: "spring", stiffness: 300 }
                 })}
               >
-                <Sparkles className="h-12 w-12 mr-4 text-electric-gold animate-pulse" />
+                <Sparkles className="h-12 w-12 mr-4 text-orange-500 animate-pulse" />
                 <MotionH1 
-                  className="logo-cosmic text-6xl md:text-8xl lg:text-9xl font-bold"
+                  className="text-6xl md:text-8xl lg:text-9xl font-bold text-gray-900"
                   {...(process.env.NODE_ENV !== 'test' && {
                     animate: { 
                       filter: [
-                        "drop-shadow(0 0 20px hsl(270 100% 65% / 0.5))", 
-                        "drop-shadow(0 0 40px hsl(45 100% 65% / 0.7))", 
-                        "drop-shadow(0 0 20px hsl(270 100% 65% / 0.5))"
+                        "drop-shadow(0 0 20px hsl(20 100% 65% / 0.3))", 
+                        "drop-shadow(0 0 40px hsl(20 100% 65% / 0.5))", 
+                        "drop-shadow(0 0 20px hsl(20 100% 65% / 0.3))"
                       ]
                     },
                     transition: { duration: 3, repeat: Infinity }
@@ -231,7 +231,7 @@ export const AuthScreen = ({
                 >
                   PartyHaus
                 </MotionH1>
-                <Sparkles className="h-12 w-12 ml-4 text-electric-magenta animate-pulse delay-500" />
+                <Sparkles className="h-12 w-12 ml-4 text-orange-400 animate-pulse delay-500" />
               </MotionDiv>
               
               <MotionDiv 
@@ -241,10 +241,10 @@ export const AuthScreen = ({
                   transition: { duration: 0.8, delay: 0.6 }
                 })}
               >
-                <p className="text-2xl md:text-3xl lg:text-4xl font-light text-cosmic-secondary mb-4">
+                <p className="text-2xl md:text-3xl lg:text-4xl font-light text-gray-700 mb-4">
                   Where Every Event Becomes Unforgettable
                 </p>
-                <p className="text-lg md:text-xl text-cosmic-secondary max-w-2xl mx-auto">
+                <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
                   The premium event platform combining smart planning, interactive gaming, 
                   and magical memory creation.
                 </p>
@@ -261,9 +261,9 @@ export const AuthScreen = ({
               className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12"
             >
               {[
-                { icon: Calendar, title: "Smart Planning", desc: "AI-powered event management" },
-                { icon: Gamepad2, title: "Interactive Games", desc: "30+ engaging experiences" },
-                { icon: Camera, title: "Memory Creation", desc: "Automatic photo & video compilation" }
+                { icon: Calendar, title: "Smart Planning", desc: "AI-powered event management", color: "bg-orange-500" },
+                { icon: Gamepad2, title: "Interactive Games", desc: "30+ engaging experiences", color: "bg-blue-500" },
+                { icon: Camera, title: "Memory Creation", desc: "Automatic photo & video compilation", color: "bg-green-500" }
               ].map((feature, index) => (
                 <MotionDiv
                   key={feature.title}
@@ -273,13 +273,13 @@ export const AuthScreen = ({
                     transition: { delay: 1.0 + index * 0.2 },
                     whileHover: { y: -5 }
                   })}
-                  className="text-center p-6 rounded-xl bg-cosmic-medium/50 backdrop-blur-sm border border-electric-purple/20"
+                  className="modern-card p-6 text-center group"
                 >
-                  <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-gradient-to-r from-electric-purple to-electric-magenta flex items-center justify-center">
+                  <div className={`icon-button-3d ${feature.color} w-12 h-12 mx-auto mb-4`}>
                     <feature.icon className="h-6 w-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold text-cosmic-primary mb-2">{feature.title}</h3>
-                  <p className="text-cosmic-secondary text-sm">{feature.desc}</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">{feature.title}</h3>
+                  <p className="text-gray-600 text-sm">{feature.desc}</p>
                 </MotionDiv>
               ))}
             </MotionDiv>
@@ -295,7 +295,7 @@ export const AuthScreen = ({
             >
               <Button
                 onClick={() => setMode('auth')}
-                className="btn-cosmic-primary text-lg px-8 py-4 group"
+                className="btn-floating text-white text-lg px-8 py-4 group"
                 size="lg"
               >
                 Start Planning Your Event
@@ -305,7 +305,7 @@ export const AuthScreen = ({
               <Button
                 onClick={() => { setMode('auth'); setIsLogin(true); }}
                 variant="outline"
-                className="text-lg px-8 py-4 border-electric-cyan text-electric-cyan hover:bg-electric-cyan hover:text-cosmic-deep transition-all duration-300"
+                className="btn-soft-secondary text-lg px-8 py-4"
                 size="lg"
               >
                 Sign In
@@ -318,14 +318,14 @@ export const AuthScreen = ({
 
     // Auth Mode
     return (
-      <div className="hero-cosmic">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50 relative overflow-hidden">
         {/* Subtle Background Elements */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-electric-purple blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-48 h-48 rounded-full bg-electric-gold blur-2xl animate-pulse delay-1000"></div>
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-orange-200 blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-48 h-48 rounded-full bg-orange-300 blur-2xl animate-pulse delay-1000"></div>
         </div>
 
-        <div className="hero-content">
+        <div className="container mx-auto px-6 py-16 relative z-10">
           <MotionDiv
             {...(process.env.NODE_ENV !== 'test' && {
               initial: { opacity: 0, y: 20 },
@@ -346,7 +346,7 @@ export const AuthScreen = ({
                 <Button
                   variant="ghost"
                   onClick={onBackToLanding}
-                  className="text-cosmic-secondary hover:text-electric-cyan transition-colors"
+                  className="text-gray-600 hover:text-orange-500 transition-colors"
                 >
                   ← Back to Home
                 </Button>
@@ -363,13 +363,13 @@ export const AuthScreen = ({
               className="text-center mb-8"
             >
               <div className="inline-flex items-center justify-center mb-4">
-                <Sparkles className="h-8 w-8 mr-3 text-electric-gold" />
-                <h1 className="logo-cosmic text-4xl md:text-5xl font-bold">
+                <Sparkles className="h-8 w-8 mr-3 text-orange-500" />
+                <h1 className="text-4xl md:text-5xl font-bold text-gray-900">
                   PartyHaus
                 </h1>
-                <Sparkles className="h-8 w-8 ml-3 text-electric-magenta" />
+                <Sparkles className="h-8 w-8 ml-3 text-orange-400" />
               </div>
-              <p className="text-cosmic-secondary">
+              <p className="text-gray-600">
                 Plan. Party. Perfect.
               </p>
             </MotionDiv>
@@ -382,12 +382,12 @@ export const AuthScreen = ({
                 transition: { delay: 0.4, duration: 0.6 }
               })}
             >
-              <Card className="card-cosmic border-electric-purple/20">
+              <Card className="modern-card border-gray-200">
                 <CardHeader className="text-center pb-4">
-                  <CardTitle className="text-2xl md:text-3xl font-bold text-gradient">
+                  <CardTitle className="text-2xl md:text-3xl font-bold text-gray-900">
                     {welcomeMessage.title}
                   </CardTitle>
-                  <CardDescription className="text-cosmic-secondary text-base">
+                  <CardDescription className="text-gray-600 text-base">
                     {welcomeMessage.subtitle}
                   </CardDescription>
                 </CardHeader>
@@ -406,21 +406,21 @@ export const AuthScreen = ({
                         className="space-y-2"
                       >
                         <div className="relative">
-                          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-cosmic-secondary" />
+                          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                           <Input
                             type="text"
                             placeholder="Your full name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             autoComplete="name"
-                            className={`input-cosmic pl-10 ${validationErrors.name ? 'border-error-red' : 'border-electric-purple/30'}`}
+                            className={`input-soft pl-10 ${validationErrors.name ? 'border-red-300' : 'border-gray-200'}`}
                           />
                           {name && !validationErrors.name && (
-                            <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-success-green" />
+                            <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-green-500" />
                           )}
                         </div>
                         {validationErrors.name && (
-                          <p className="text-error-red text-sm flex items-center">
+                          <p className="text-red-500 text-sm flex items-center">
                             <AlertCircle className="h-4 w-4 mr-1" />
                             {validationErrors.name}
                           </p>
@@ -431,7 +431,7 @@ export const AuthScreen = ({
                     {/* Email Field */}
                     <div className="space-y-2">
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-cosmic-secondary" />
+                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                         <Input
                           type="email"
                           placeholder="Email address"
@@ -439,14 +439,14 @@ export const AuthScreen = ({
                           onChange={(e) => setEmail(e.target.value)}
                           required
                           autoComplete="email"
-                          className={`input-cosmic pl-10 ${validationErrors.email ? 'border-error-red' : 'border-electric-purple/30'}`}
+                          className={`input-soft pl-10 ${validationErrors.email ? 'border-red-300' : 'border-gray-200'}`}
                         />
                         {email && !validationErrors.email && (
-                          <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-success-green" />
+                          <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-green-500" />
                         )}
                       </div>
                       {validationErrors.email && (
-                        <p className="text-error-red text-sm flex items-center">
+                        <p className="text-red-500 text-sm flex items-center">
                           <AlertCircle className="h-4 w-4 mr-1" />
                           {validationErrors.email}
                         </p>
@@ -456,7 +456,7 @@ export const AuthScreen = ({
                     {/* Password Field */}
                     <div className="space-y-2">
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-cosmic-secondary" />
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                         <Input
                           type={showPassword ? "text" : "password"}
                           placeholder="Password"
@@ -464,7 +464,7 @@ export const AuthScreen = ({
                           onChange={(e) => setPassword(e.target.value)}
                           required
                           autoComplete={isLogin ? "current-password" : "new-password"}
-                          className={`input-cosmic pl-10 pr-10 ${validationErrors.password ? 'border-error-red' : 'border-electric-purple/30'}`}
+                          className={`input-soft pl-10 pr-10 ${validationErrors.password ? 'border-red-300' : 'border-gray-200'}`}
                         />
                         <Button
                           type="button"
@@ -474,14 +474,14 @@ export const AuthScreen = ({
                           className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-transparent"
                         >
                           {showPassword ? (
-                            <EyeOff className="h-4 w-4 text-cosmic-secondary" />
+                            <EyeOff className="h-4 w-4 text-gray-400" />
                           ) : (
-                            <Eye className="h-4 w-4 text-cosmic-secondary" />
+                            <Eye className="h-4 w-4 text-gray-400" />
                           )}
                         </Button>
                       </div>
                       {validationErrors.password && (
-                        <p className="text-error-red text-sm flex items-center">
+                        <p className="text-red-500 text-sm flex items-center">
                           <AlertCircle className="h-4 w-4 mr-1" />
                           {validationErrors.password}
                         </p>
@@ -492,13 +492,13 @@ export const AuthScreen = ({
                     <Button
                       type="submit"
                       className={`w-full text-lg font-semibold h-12 transition-all duration-300 ${
-                        isFormValid ? 'btn-cosmic-primary' : 'bg-cosmic-light text-cosmic-secondary cursor-not-allowed'
+                        isFormValid ? 'btn-floating text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-100'
                       }`}
                       disabled={isLoading || !isFormValid}
                     >
                       {isLoading ? (
                         <div className="flex items-center space-x-2">
-                          <div className="cosmic-spinner w-5 h-5" />
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                           <span>{isLogin ? 'Signing in...' : 'Creating account...'}</span>
                         </div>
                       ) : (
@@ -511,14 +511,14 @@ export const AuthScreen = ({
                   </form>
 
                   {/* Benefits Preview */}
-                  <div className="pt-4 border-t border-electric-purple/20">
-                    <p className="text-cosmic-secondary text-sm text-center mb-3">
+                  <div className="pt-4 border-t border-gray-200">
+                    <p className="text-gray-600 text-sm text-center mb-3">
                       What you'll get:
                     </p>
                     <div className="grid grid-cols-1 gap-2">
                       {welcomeMessage.benefits.map((benefit, index) => (
-                        <div key={benefit} className="flex items-center text-cosmic-secondary text-sm">
-                          <CheckCircle className="h-4 w-4 text-electric-gold mr-2 flex-shrink-0" />
+                        <div key={benefit} className="flex items-center text-gray-600 text-sm">
+                          <CheckCircle className="h-4 w-4 text-orange-500 mr-2 flex-shrink-0" />
                           {benefit}
                         </div>
                       ))}
@@ -530,7 +530,7 @@ export const AuthScreen = ({
                     <button
                       type="button"
                       onClick={() => setIsLogin(!isLogin)}
-                      className="text-electric-cyan hover:text-electric-gold transition-colors text-sm"
+                      className="text-orange-500 hover:text-orange-600 transition-colors text-sm font-medium"
                     >
                       {isLogin ? "Don't have an account? Create one here" : "Already have an account? Sign in"}
                     </button>

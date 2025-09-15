@@ -3,7 +3,7 @@ import { usePartyStore } from '@/store/usePartyStore';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, MapPin, Music, Plus, Users, LogOut, Mail } from 'lucide-react';
+import { Calendar, MapPin, Music, Plus, Users, LogOut, Mail, Gamepad2 } from 'lucide-react';
 import { safeFormat } from '@/lib/utils';
 import { fadeIn, staggerContainer, cardHover, pulseAnimation } from '@/lib/animations';
 import { useEffect, useState } from 'react';
@@ -276,7 +276,7 @@ export const Dashboard = () => {
                       <div className="mt-2 text-sm text-muted-foreground">
                         <span className="flex items-center mb-1">
                           <Calendar className="h-4 w-4 mr-2 text-primary" />
-                          {safeFormat(event.date, 'PPP p', 'Invalid date')}
+                          {safeFormat(event.start_date || event.date, 'PPP p', 'Invalid date')}
                         </span>
                         <span className="flex items-center">
                           <MapPin className="h-4 w-4 mr-2 text-accent" />
@@ -295,6 +295,17 @@ export const Dashboard = () => {
                       </MotionDiv>
                       <Button size="sm" variant="outline" onClick={() => handleInviteClick(event)}>
                         <Mail className="h-4 w-4 mr-1" /> Invite
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => {
+                          setCurrentEvent(event);
+                          setCurrentPage('games');
+                        }}
+                        className="border-green-500 text-green-600 hover:bg-green-50"
+                      >
+                        <Gamepad2 className="h-4 w-4 mr-1" /> Games
                       </Button>
                     </div>
                   </div>

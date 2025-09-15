@@ -1,3 +1,7 @@
+-- Fix UUID function and apply all necessary migrations
+-- First ensure the pgcrypto extension is available for gen_random_uuid()
+create extension if not exists "pgcrypto";
+
 -- Email tracking and status migration
 -- Add email tracking tables for delivery status monitoring
 
@@ -11,7 +15,7 @@ end;
 $$ language plpgsql;
 
 -- Create email logs table for tracking all sent emails
-create table email_logs (
+create table if not exists email_logs (
     id uuid primary key default gen_random_uuid(),
     event_id uuid references events(id) on delete cascade,
     guest_id uuid references guests(id) on delete cascade,
@@ -32,7 +36,7 @@ create table email_logs (
 );
 
 -- Create email events table for webhook tracking
-create table email_events (
+create table if not exists email_events (
     id uuid primary key default gen_random_uuid(),
     email_log_id uuid references email_logs(id) on delete cascade not null,
     resend_email_id text not null,
@@ -42,17 +46,18 @@ create table email_events (
     processed_at timestamp with time zone default now()
 );
 
--- Add indexes for performance
-create index idx_email_logs_event_id on email_logs(event_id);
-create index idx_email_logs_guest_id on email_logs(guest_id);
-create index idx_email_logs_resend_id on email_logs(resend_email_id);
-create index idx_email_logs_status on email_logs(status);
-create index idx_email_logs_sent_at on email_logs(sent_at);
-create index idx_email_events_email_log_id on email_events(email_log_id);
-create index idx_email_events_resend_id on email_events(resend_email_id);
-create index idx_email_events_type on email_events(event_type);
+-- Add indexes for performance (only if they don't exist)
+create index if not exists idx_email_logs_event_id on email_logs(event_id);
+create index if not exists idx_email_logs_guest_id on email_logs(guest_id);
+create index if not exists idx_email_logs_resend_id on email_logs(resend_email_id);
+create index if not exists idx_email_logs_status on email_logs(status);
+create index if not exists idx_email_logs_sent_at on email_logs(sent_at);
+create index if not exists idx_email_events_email_log_id on email_events(email_log_id);
+create index if not exists idx_email_events_resend_id on email_events(resend_email_id);
+create index if not exists idx_email_events_type on email_events(event_type);
 
--- Add trigger for updated_at
+-- Add trigger for updated_at (drop first if exists)
+drop trigger if exists update_email_logs_updated_at on email_logs;
 create trigger update_email_logs_updated_at
     before update on email_logs
     for each row
@@ -61,6 +66,12 @@ create trigger update_email_logs_updated_at
 -- Add RLS policies
 alter table email_logs enable row level security;
 alter table email_events enable row level security;
+
+-- Drop existing policies if they exist and recreate
+drop policy if exists "Users can view email logs for their events" on email_logs;
+drop policy if exists "Users can manage email logs for their events" on email_logs;
+drop policy if exists "Users can view email events for their logs" on email_events;
+drop policy if exists "System can insert email events" on email_events;
 
 -- Email logs policies - Users can view email logs for their events
 create policy "Users can view email logs for their events"
@@ -93,10 +104,21 @@ create policy "System can insert email events"
     on email_events for insert
     with check (true); -- Allow webhook system to insert events
 
--- Add email status to guests table
-alter table guests add column email_status text default 'not_sent' check (email_status in ('not_sent', 'sent', 'delivered', 'opened', 'clicked', 'bounced', 'failed'));
-alter table guests add column last_email_sent_at timestamp with time zone;
-alter table guests add column email_log_id uuid references email_logs(id);
+-- Add email status to guests table (check if columns exist first)
+do $$
+begin
+    if not exists (select 1 from information_schema.columns where table_name = 'guests' and column_name = 'email_status') then
+        alter table guests add column email_status text default 'not_sent' check (email_status in ('not_sent', 'sent', 'delivered', 'opened', 'clicked', 'bounced', 'failed'));
+    end if;
+    
+    if not exists (select 1 from information_schema.columns where table_name = 'guests' and column_name = 'last_email_sent_at') then
+        alter table guests add column last_email_sent_at timestamp with time zone;
+    end if;
+    
+    if not exists (select 1 from information_schema.columns where table_name = 'guests' and column_name = 'email_log_id') then
+        alter table guests add column email_log_id uuid references email_logs(id);
+    end if;
+end $$;
 
 -- Create view for email analytics
 create or replace view email_analytics as
@@ -124,3 +146,40 @@ select
 from events e
 left join email_logs el on e.id = el.event_id
 group by e.id, e.name;
+
+-- Update events table for multi-day support if not already done
+do $$
+begin
+    -- Add new columns for multi-day events
+    if not exists (select 1 from information_schema.columns where table_name = 'events' and column_name = 'start_date') then
+        alter table events add column start_date timestamp with time zone;
+    end if;
+    
+    if not exists (select 1 from information_schema.columns where table_name = 'events' and column_name = 'end_date') then
+        alter table events add column end_date timestamp with time zone;
+    end if;
+    
+    if not exists (select 1 from information_schema.columns where table_name = 'events' and column_name = 'event_type') then
+        alter table events add column event_type text default 'single_day' check (event_type in ('single_day', 'multi_day'));
+    end if;
+    
+    -- Convert existing event_date to start_date where start_date is null
+    update events set start_date = event_date where start_date is null;
+    update events set end_date = event_date where end_date is null and event_type = 'single_day';
+end $$;
+
+-- Add invite image support if not already done
+do $$
+begin
+    if not exists (select 1 from information_schema.columns where table_name = 'events' and column_name = 'invite_image_url') then
+        alter table events add column invite_image_url text;
+    end if;
+    
+    if not exists (select 1 from information_schema.columns where table_name = 'events' and column_name = 'max_guests') then
+        alter table events add column max_guests integer;
+    end if;
+    
+    if not exists (select 1 from information_schema.columns where table_name = 'events' and column_name = 'is_public') then
+        alter table events add column is_public boolean default false;
+    end if;
+end $$;

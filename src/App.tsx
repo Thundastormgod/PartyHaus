@@ -13,6 +13,7 @@ import { EventCreation } from "@/components/EventCreation";
 import { EventManagement } from "@/components/EventManagement";
 import { QRScanner } from "@/components/QRScanner";
 import { GuestView } from "@/components/GuestView";
+import { GamesPage } from "@/components/GamesPage";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { HardenedErrorBoundary } from '@/components/HardenedErrorBoundary';

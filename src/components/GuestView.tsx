@@ -153,10 +153,10 @@ export const GuestView = ({ guestId, eventId }: GuestViewProps) => {
                     <div>
                       <p className="font-semibold">When</p>
                       <p className="text-muted-foreground">
-                        {safeFormat(event.event_date, 'EEEE, MMMM do, yyyy', '')}
+                        {safeFormat(event.start_date || event.date, 'EEEE, MMMM do, yyyy', '')}
                       </p>
                       <p className="text-muted-foreground">
-                        {safeFormat(event.event_date, 'h:mm a', '')}
+                        {safeFormat(event.start_date || event.date, 'h:mm a', '')}
                       </p>
                     </div>
                   </div>

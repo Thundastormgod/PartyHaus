@@ -77,7 +77,7 @@ export const GuestList = ({ eventId }: GuestListProps) => {
               data.email,
               {
                 name: currentEvent.name,
-                date: format(new Date(currentEvent.date), 'PPP'),
+                date: currentEvent.start_date ? format(new Date(currentEvent.start_date), 'PPP') : format(new Date(currentEvent.date!), 'PPP'),
                 location: currentEvent.location
               },
               invitationUrl,
@@ -155,7 +155,7 @@ export const GuestList = ({ eventId }: GuestListProps) => {
             <h1 style="color: #6C63FF;">Test Email ✅</h1>
             <p>This is a test email from PartyHaus!</p>
             <p><strong>Event:</strong> ${currentEvent.name}</p>
-            <p><strong>Date:</strong> ${format(new Date(currentEvent.date), 'PPP')}</p>
+            <p><strong>Date:</strong> ${currentEvent.start_date ? format(new Date(currentEvent.start_date), 'PPP') : format(new Date(currentEvent.date!), 'PPP')}</p>
             <p><strong>Location:</strong> ${currentEvent.location}</p>
             <p>If you received this email, the PartyHaus email system is working perfectly! 🎉</p>
           </div>

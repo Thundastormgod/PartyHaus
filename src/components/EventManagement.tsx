@@ -124,11 +124,11 @@ export const EventManagement = () => {
               <CardContent className="space-y-4">
                 <div className="flex items-center text-muted-foreground">
                   <Calendar className="h-4 w-4 mr-2" />
-                  <span>{format(new Date(currentEvent.event_date), 'PPP')}</span>
+                  <span>{format(new Date(currentEvent.start_date || currentEvent.date!), 'PPP')}</span>
                 </div>
                 <div className="flex items-center text-muted-foreground">
                   <Clock className="h-4 w-4 mr-2" />
-                  <span>{format(new Date(currentEvent.event_date), 'p')}</span>
+                  <span>{format(new Date(currentEvent.start_date || currentEvent.date!), 'p')}</span>
                 </div>
                 <div className="flex items-center text-muted-foreground">
                   <MapPin className="h-4 w-4 mr-2" />

@@ -19,7 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
-interface LandingPageProps {
+interface LandingPageSoftProps {
   onGetStarted: () => void;
   onSignIn: () => void;
 }
@@ -48,7 +48,7 @@ const floatingAnimation = {
   }
 };
 
-export const LandingPage = ({ onGetStarted, onSignIn }: LandingPageProps) => {
+export function LandingPageSoft({ onGetStarted, onSignIn }: LandingPageSoftProps) {
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -391,4 +391,4 @@ export const LandingPage = ({ onGetStarted, onSignIn }: LandingPageProps) => {
       </footer>
     </div>
   );
-};
+}
