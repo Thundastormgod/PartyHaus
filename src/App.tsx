@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { usePartyStore } from "@/store/usePartyStore";
 import { AuthScreen } from "@/components/AuthScreen";
 import { LandingPage } from "@/components/LandingPage";
+import LandingPageCreative from "@/components/LandingPageCreative";
+import PartyCultureBlog from "@/components/PartyCultureBlog";
 import { useAuth } from "@/hooks/use-auth";
 import { Dashboard } from "@/components/Dashboard";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -84,10 +86,7 @@ const App = () => {
     if (!user) {
       if (appMode === 'landing') {
         return (
-          <LandingPage 
-            onGetStarted={() => handleGetStarted('create_event')}
-            onSignIn={handleSignIn}
-          />
+          <LandingPageCreative />
         );
       } else {
         return (
@@ -98,6 +97,11 @@ const App = () => {
           />
         );
       }
+    }
+
+    // Handle special pages for all users
+    if (currentPage === 'party-culture-blog') {
+      return <PartyCultureBlog />;
     }
 
     // Handle guest view with dynamic ID
@@ -119,6 +123,8 @@ const App = () => {
               return <EventManagement />;
             case 'qr-scanner':
               return <QRScanner />;
+            case 'games':
+              return <GamesPage />;
             default:
               return <Dashboard />;
           }

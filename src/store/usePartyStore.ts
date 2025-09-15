@@ -50,7 +50,7 @@ export interface PartyState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  currentPage: 'auth' | 'dashboard' | 'create-event' | 'event-management' | 'qr-scanner' | string;
+  currentPage: 'auth' | 'dashboard' | 'create-event' | 'event-management' | 'qr-scanner' | 'party-culture-blog' | 'games' | string;
   events: Event[];
   currentEvent: Event | null;
   guests: Guest[];
