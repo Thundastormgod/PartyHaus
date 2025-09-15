@@ -322,7 +322,7 @@ export const EventCreation = () => {
 
   // Default: event creation form
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
@@ -330,11 +330,11 @@ export const EventCreation = () => {
             <motion.h1
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4"
+              className="text-4xl font-bold text-gray-900 mb-4"
             >
               Create New Event
             </motion.h1>
-            <p className="text-muted-foreground">
+            <p className="text-gray-600">
               Plan your perfect party and invite your guests
             </p>
           </div>
@@ -345,10 +345,10 @@ export const EventCreation = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Card className="glass border-primary/20">
+            <Card className="modern-card">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Sparkles className="h-6 w-6 mr-2 text-primary" />
+                  <Sparkles className="h-6 w-6 mr-2 text-orange-500" />
                   Event Details
                 </CardTitle>
                 <CardDescription>
@@ -524,7 +524,7 @@ export const EventCreation = () => {
                     <Button
                       type="submit"
                       disabled={isSubmitting || !formData.name || !formData.start_date || !formData.start_time || !formData.end_time || !formData.location || (formData.event_type === 'multi_day' && !formData.end_date)}
-                      className="flex-1 btn-party"
+                      className="flex-1 btn-floating"
                     >
                       {isSubmitting ? (
                         <>

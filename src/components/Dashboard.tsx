@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const EventCardSkeleton = () => (
-  <Card className="glass border-primary/20">
+  <Card className="modern-card">
     <CardHeader>
       <div className="space-y-2">
         <Skeleton className="h-6 w-2/3" />
@@ -33,17 +33,17 @@ export const Dashboard = () => {
   // Simple test version to isolate the issue
   if (process.env.NODE_ENV === 'test') {
     return (
-      <div className="min-h-screen bg-background">
-        <header className="border-b border-border/50 glass-dark sticky top-0 z-10">
-          <div className="container-responsive py-4">
+      <div className="min-h-screen bg-white">
+        <header className="border-b border-gray-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10 shadow-soft">
+          <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-gradient text-glow">
+                <h1 className="text-2xl font-bold text-gray-900">
                   PartyHaus
                 </h1>
-                <p className="text-muted-foreground">Welcome back, User!</p>
+                <p className="text-gray-600">Welcome back, User!</p>
               </div>
-              <button className="text-muted-foreground hover:text-foreground transition-colors">
+              <button className="text-gray-600 hover:text-gray-900 transition-colors">
                 Logout
               </button>
             </div>
@@ -171,7 +171,7 @@ export const Dashboard = () => {
 
   return (
     <MotionDiv 
-      className="min-h-screen bg-background"
+      className="min-h-screen bg-white"
       {...(process.env.NODE_ENV !== 'test' && {
         initial: "initial",
         animate: "animate",
@@ -185,13 +185,13 @@ export const Dashboard = () => {
         {...(process.env.NODE_ENV !== 'test' && {
           variants: fadeIn
         })}
-        className="border-b border-border/50 glass-dark sticky top-0 z-10"
+        className="border-b border-gray-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10 shadow-soft"
       >
-        <div className="container-responsive py-4">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
               <MotionH1 
-                className="text-2xl font-bold text-gradient text-glow"
+                className="text-2xl font-bold text-gray-900"
                 {...(process.env.NODE_ENV !== 'test' && {
                   variants: pulseAnimation,
                   animate: "animate"
@@ -199,13 +199,13 @@ export const Dashboard = () => {
               >
                 PartyHaus
               </MotionH1>
-              <p className="text-muted-foreground">Welcome back, {user?.name || user?.email || 'User'}!</p>
+              <p className="text-gray-600">Welcome back, {user?.name || user?.email || 'User'}!</p>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={signOut}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="text-gray-600 hover:text-gray-900 transition-colors"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
@@ -215,7 +215,7 @@ export const Dashboard = () => {
       </MotionHeader>
   {(() => { console.log('🎯 DASHBOARD RENDER: after header'); return null })()}
 
-      <div className="container-responsive py-8">
+        <div className="container mx-auto px-4 py-8">
         {/* Create New Event Button */}
         <MotionDiv
           {...(process.env.NODE_ENV !== 'test' && {
@@ -226,7 +226,7 @@ export const Dashboard = () => {
           {(() => { console.log('🎯 DASHBOARD RENDER: before create button'); return null })()}
           <Button
             onClick={() => setCurrentPage('create-event')}
-            className="btn-party h-16 px-8 text-lg font-semibold"
+            className="btn-floating h-16 px-8 text-lg font-semibold"
             size="lg"
           >
             <Plus className="h-6 w-6 mr-3" />
@@ -264,22 +264,22 @@ export const Dashboard = () => {
               })}
             >
               <Card 
-                className="glass card-hover border-primary/20 cursor-pointer group overflow-hidden"
+                className="modern-card hover-lift cursor-pointer group overflow-hidden"
               >
-                <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
+                <div className="absolute inset-0 bg-orange-500 opacity-0 group-hover:opacity-5 transition-opacity duration-300" />
                 <CardHeader className="relative">
                   <div className="flex items-start justify-between">
                     <div className="flex-1" onClick={() => handleEventClick(event)} style={{ cursor: 'pointer' }}>
-                      <CardTitle className="text-xl group-hover:text-primary transition-colors">
+                      <CardTitle className="text-xl text-gray-900 group-hover:text-orange-600 transition-colors">
                         {event.name}
                       </CardTitle>
-                      <div className="mt-2 text-sm text-muted-foreground">
+                      <div className="mt-2 text-sm text-gray-600">
                         <span className="flex items-center mb-1">
-                          <Calendar className="h-4 w-4 mr-2 text-primary" />
+                          <Calendar className="h-4 w-4 mr-2 text-orange-500" />
                           {safeFormat(event.start_date || event.date, 'PPP p', 'Invalid date')}
                         </span>
                         <span className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-2 text-accent" />
+                          <MapPin className="h-4 w-4 mr-2 text-orange-400" />
                           {event.location}
                         </span>
                       </div>
@@ -291,7 +291,7 @@ export const Dashboard = () => {
                           animate: "animate"
                         })}
                       >
-                        <Music className="h-6 w-6 text-primary" />
+                        <Music className="h-6 w-6 text-orange-500" />
                       </MotionDiv>
                       <Button size="sm" variant="outline" onClick={() => handleInviteClick(event)}>
                         <Mail className="h-4 w-4 mr-1" /> Invite
@@ -312,12 +312,12 @@ export const Dashboard = () => {
                 </CardHeader>
                 <CardContent className="relative">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center text-sm text-muted-foreground">
+                    <div className="flex items-center text-sm text-gray-600">
                       <Users className="h-4 w-4 mr-2" />
                       <span>Guest List</span>
                     </div>
-                    <div className="w-12 h-12 rounded-full bg-primary/20 flex-center group-hover:bg-primary/30 transition-all duration-300">
-                      <Users className="h-6 w-6 text-primary" />
+                    <div className="w-12 h-12 rounded-full bg-orange-100 flex-center group-hover:bg-orange-200 transition-all duration-300">
+                      <Users className="h-6 w-6 text-orange-600" />
                     </div>
                   </div>
                 </CardContent>
@@ -373,15 +373,15 @@ export const Dashboard = () => {
                   animate: "animate"
                 })}
               >
-                <Music className="h-16 w-16 mx-auto text-primary/50 mb-4" />
+                <Music className="h-16 w-16 mx-auto text-orange-300 mb-4" />
               </MotionDiv>
-              <h3 className="text-xl font-semibold mb-2 text-gradient">No events yet</h3>
-              <p className="text-muted-foreground mb-6">
+              <h3 className="text-xl font-semibold mb-2 text-gray-900">No events yet</h3>
+              <p className="text-gray-600 mb-6">
                 Ready to throw an amazing party? Create your first event to get started!
               </p>
               <Button
                 onClick={() => setCurrentPage('create-event')}
-                className="btn-party"
+                className="btn-floating"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Your First Event
