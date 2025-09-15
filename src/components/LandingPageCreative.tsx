@@ -21,14 +21,9 @@ import {
 
 const videoSources = [
   {
-    src: '/videos/party-moments-1.mp4',
+    src: '/videos/Video_concept_lively_202509130901.mp4',
     poster: '/images/video-poster-1.jpg',
     type: 'video/mp4'
-  },
-  {
-    src: '/videos/party-moments-2.webm',
-    poster: '/images/video-poster-1.jpg', 
-    type: 'video/webm'
   }
 ];
 
@@ -50,20 +45,54 @@ export const LandingPageCreative = () => {
   const navigateToApp = () => {
     setCurrentPage('dashboard');
   };
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  
+  const navigateToAuth = () => {
+    setCurrentPage('auth');
+  };
+  
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+    // Video loading optimization
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      // Optimize video playback
+      video.playbackRate = 1;
+      video.defaultPlaybackRate = 1;
+      
+      // Handle video load events
+      const handleLoadedData = () => {
+        setVideoLoaded(true);
+      };
+      
+      const handleError = (e: Event) => {
+        console.warn('Video failed to load:', e);
+        setVideoLoaded(false);
+      };
+      
+      video.addEventListener('loadeddata', handleLoadedData);
+      video.addEventListener('error', handleError);
+      
+      // Preload video on component mount
+      video.load();
+      
+      return () => {
+        video.removeEventListener('loadeddata', handleLoadedData);
+        video.removeEventListener('error', handleError);
+      };
+    }
+  }, []);
+
+  const [videoLoaded, setVideoLoaded] = useState(false);
   
   // Video background parallax effect
   const videoScale = useTransform(scrollYProgress, [0, 0.3], [1, 1.1]);
   const videoOpacity = useTransform(scrollYProgress, [0, 0.5], [0.8, 0.3]);
   
-  useEffect(() => {
-    const video = videoRef.current;
-    if (video) {
-      video.addEventListener('loadeddata', () => setIsVideoLoaded(true));
-      video.play().catch(console.log);
-    }
-  }, []);
-
   const experienceArchetypes = [
     {
       title: "The Intimate Curator",
@@ -128,22 +157,37 @@ export const LandingPageCreative = () => {
           muted
           loop
           playsInline
+          preload="metadata"
           className="w-full h-full object-cover"
-          poster="/images/hero-poster.jpg"
+          poster="/images/video-poster-1.jpg"
+          style={{
+            filter: 'brightness(0.7) contrast(1.1) saturate(1.2)',
+            transform: 'scale(1.05)' // Slight zoom to avoid edge artifacts
+          }}
+          onLoadedData={() => setVideoLoaded(true)}
+          onError={() => setVideoLoaded(false)}
         >
           {videoSources.map((source, index) => (
             <source key={index} src={source.src} type={source.type} />
           ))}
         </video>
         
-        {/* Video Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/60" />
-        <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 via-transparent to-purple-500/10" />
+        {/* Enhanced Video Overlay for Perfect Blending */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70" />
+        <div className="absolute inset-0 bg-gradient-to-r from-orange-600/15 via-transparent to-purple-600/15" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        {/* Subtle noise overlay for texture */}
+        <div className="absolute inset-0 opacity-10" 
+             style={{
+               backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+               mixBlendMode: 'multiply'
+             }}
+        />
       </motion.div>
 
       {/* Navigation */}
       <motion.nav 
-        className="fixed top-0 w-full z-50 backdrop-blur-md bg-white/10 border-b border-white/20"
+        className="fixed top-0 w-full z-50 backdrop-blur-lg bg-black/20 border-b border-white/10"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.8, delay: 0.2 }}
@@ -159,7 +203,7 @@ export const LandingPageCreative = () => {
             
             <div className="hidden md:flex items-center space-x-8">
               <button 
-                onClick={() => {/* scroll to curate section */}}
+                onClick={() => scrollToSection('experience-archetypes')}
                 className="text-white/80 hover:text-white transition-colors"
               >
                 Curate My Experience
@@ -171,7 +215,7 @@ export const LandingPageCreative = () => {
                 Party Culture
               </button>
               <button 
-                onClick={() => {/* scroll to gallery */}}
+                onClick={() => scrollToSection('philosophy')}
                 className="text-white/80 hover:text-white transition-colors"
               >
                 Experience Gallery
@@ -190,7 +234,10 @@ export const LandingPageCreative = () => {
 
       {/* Hero Section */}
       <section className="relative z-10 min-h-screen flex items-center justify-center">
-        <div className="container mx-auto px-6 text-center">
+        {/* Additional content overlay for better text readability */}
+        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm"></div>
+        
+        <div className="container mx-auto px-6 text-center relative z-20">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -203,7 +250,7 @@ export const LandingPageCreative = () => {
               transition={{ duration: 1.2, delay: 0.8 }}
               className="mb-8"
             >
-              <h1 className="text-6xl md:text-8xl font-light text-white mb-6 leading-tight">
+              <h1 className="text-6xl md:text-8xl font-light text-white mb-6 leading-tight drop-shadow-2xl">
                 Your Personal
                 <span className="block bg-gradient-to-r from-orange-400 to-pink-400 bg-clip-text text-transparent font-bold">
                   Experience Curator
@@ -212,7 +259,7 @@ export const LandingPageCreative = () => {
             </motion.div>
 
             <motion.p 
-              className="text-xl md:text-2xl text-white/80 mb-12 max-w-2xl mx-auto leading-relaxed"
+              className="text-xl md:text-2xl text-white/90 mb-12 max-w-2xl mx-auto leading-relaxed drop-shadow-lg"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 1.2 }}
@@ -230,18 +277,20 @@ export const LandingPageCreative = () => {
               <Button 
                 size="lg" 
                 className="btn-floating text-lg px-8 py-4 h-auto"
+                onClick={navigateToAuth}
               >
                 <Sparkles className="w-5 h-5 mr-2" />
-                Discover Your Style
+                Create Your Event
               </Button>
               
               <Button 
                 variant="outline" 
                 size="lg"
                 className="border-white/30 text-white hover:bg-white/10 text-lg px-8 py-4 h-auto"
+                onClick={() => scrollToSection('experience-archetypes')}
               >
                 <Play className="w-5 h-5 mr-2" />
-                Watch Our Story
+                Discover Your Style
               </Button>
             </motion.div>
           </motion.div>
@@ -267,7 +316,7 @@ export const LandingPageCreative = () => {
       {/* Content Sections */}
       <div className="relative z-10 bg-white">
         {/* Philosophy Section */}
-        <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
+        <section id="philosophy" className="py-20 bg-gradient-to-b from-gray-50 to-white">
           <div className="container mx-auto px-6">
             <motion.div 
               className="max-w-4xl mx-auto text-center"
@@ -326,7 +375,7 @@ export const LandingPageCreative = () => {
         </section>
 
         {/* Experience Archetypes */}
-        <section id="curate" className="py-20 bg-white">
+        <section id="experience-archetypes" className="py-20 bg-white">
           <div className="container mx-auto px-6">
             <motion.div
               className="text-center mb-16"
@@ -380,7 +429,11 @@ export const LandingPageCreative = () => {
                 transition={{ duration: 0.6, delay: 0.5 }}
                 viewport={{ once: true }}
               >
-                <Button className="btn-floating" size="lg">
+                <Button 
+                  className="btn-floating" 
+                  size="lg"
+                  onClick={() => scrollToSection('philosophy')}
+                >
                   <Wand2 className="w-5 h-5 mr-2" />
                   Take the Style Quiz
                 </Button>
@@ -442,7 +495,12 @@ export const LandingPageCreative = () => {
                     </p>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-500">{post.readTime}</span>
-                      <Button variant="ghost" size="sm" className="text-orange-500 hover:text-orange-600">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-orange-500 hover:text-orange-600"
+                        onClick={navigateToBlog}
+                      >
                         Read More <ArrowRight className="w-4 h-4 ml-1" />
                       </Button>
                     </div>
@@ -458,7 +516,11 @@ export const LandingPageCreative = () => {
               transition={{ duration: 0.6, delay: 0.3 }}
               viewport={{ once: true }}
             >
-              <Button className="btn-floating" size="lg">
+              <Button 
+                className="btn-floating" 
+                size="lg"
+                onClick={navigateToBlog}
+              >
                 <BookOpen className="w-5 h-5 mr-2" />
                 Explore All Articles
               </Button>
@@ -491,18 +553,20 @@ export const LandingPageCreative = () => {
                   size="lg" 
                   variant="secondary"
                   className="bg-white text-orange-500 hover:bg-gray-100 text-lg px-8 py-4 h-auto"
+                  onClick={navigateToAuth}
                 >
                   <Sparkles className="w-5 h-5 mr-2" />
-                  Start Curating
+                  Start Creating Event
                 </Button>
                 
                 <Button 
                   variant="outline" 
                   size="lg"
                   className="border-white/30 text-white hover:bg-white/10 text-lg px-8 py-4 h-auto"
+                  onClick={navigateToApp}
                 >
                   <Calendar className="w-5 h-5 mr-2" />
-                  Schedule a Demo
+                  Explore Platform
                 </Button>
               </div>
             </motion.div>

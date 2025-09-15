@@ -49,8 +49,12 @@ const App = () => {
         usePartyStore.getState().setCurrentPage('dashboard');
       }
     } else {
-      // If no user and we're in app mode, show auth directly
-      if (appMode === 'app') {
+      // If no user, check currentPage to determine mode
+      if (currentPage === 'auth') {
+        setAppMode('auth');
+      } else if (currentPage === 'landing') {
+        setAppMode('landing');
+      } else if (appMode === 'app') {
         setAppMode('auth');
       }
       // Don't auto-redirect to auth from landing - let user choose
@@ -69,6 +73,8 @@ const App = () => {
 
   const handleBackToLanding = () => {
     setAppMode('landing');
+    // Also reset the currentPage to ensure consistency
+    usePartyStore.getState().setCurrentPage('landing');
   };
 
   if (isLoading) {
