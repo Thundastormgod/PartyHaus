@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { HardenedErrorBoundary } from '@/components/HardenedErrorBoundary';
 import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom';
+import { initializeAuthStateListener } from '@/lib/auth';
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,9 @@ const App = () => {
   const [userIntent, setUserIntent] = useState<'create_event' | 'join_event' | 'explore_features'>('explore_features');
 
   useEffect(() => {
+    // Initialize auth state listener for session management
+    initializeAuthStateListener();
+    
     // Enhanced routing logic with landing page support
     if (user) {
       setAppMode('app');

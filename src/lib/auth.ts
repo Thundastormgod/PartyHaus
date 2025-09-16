@@ -12,6 +12,49 @@ export interface AuthResponse {
   message?: string;
 }
 
+// Handle authentication errors, especially refresh token issues
+export const handleAuthError = async (error: any) => {
+  console.error('Auth error:', error);
+  
+  if (error.message?.includes('Invalid Refresh Token') || 
+      error.message?.includes('Refresh Token Not Found')) {
+    console.log('Refresh token invalid, signing out user');
+    // Clear local session and redirect to login
+    await supabase.auth.signOut();
+    // Clear any cached data
+    localStorage.clear();
+    sessionStorage.clear();
+    // Redirect to login page
+    window.location.href = '/auth/login';
+    return true; // Indicates error was handled
+  }
+  return false; // Error not handled
+};
+
+// Set up auth state change listener for session management
+export const initializeAuthStateListener = () => {
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    console.log('Auth state changed:', event, session?.user?.email);
+    
+    switch (event) {
+      case 'SIGNED_IN':
+        console.log('User signed in successfully');
+        break;
+      case 'SIGNED_OUT':
+        console.log('User signed out, clearing local data');
+        localStorage.clear();
+        sessionStorage.clear();
+        break;
+      case 'TOKEN_REFRESHED':
+        console.log('Session refreshed successfully');
+        break;
+      case 'USER_UPDATED':
+        console.log('User data updated');
+        break;
+    }
+  });
+};
+
 export const authService = {
   signIn: async (email: string, password: string): Promise<AuthResponse> => {
     try {
@@ -38,6 +81,15 @@ export const authService = {
         error: 'No user returned from authentication'
       };
     } catch (error: any) {
+      // Handle refresh token errors
+      const handled = await handleAuthError(error);
+      if (handled) {
+        return {
+          success: false,
+          error: 'Session expired, please sign in again'
+        };
+      }
+      
       return {
         success: false,
         error: error.message

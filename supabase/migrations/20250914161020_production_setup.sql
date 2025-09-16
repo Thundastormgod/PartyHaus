@@ -49,29 +49,4 @@ begin
     end if;
 end $$;
 
--- Create or update email analytics view
-create or replace view email_analytics as
-select 
-    e.id as event_id,
-    e.name as event_name,
-    count(el.id) as total_emails_sent,
-    count(case when el.status = 'delivered' then 1 end) as delivered_count,
-    count(case when el.status = 'opened' then 1 end) as opened_count,
-    count(case when el.status = 'clicked' then 1 end) as clicked_count,
-    count(case when el.status = 'bounced' then 1 end) as bounced_count,
-    count(case when el.status = 'failed' then 1 end) as failed_count,
-    round(
-        (count(case when el.status = 'delivered' then 1 end)::numeric / 
-         nullif(count(el.id), 0) * 100), 2
-    ) as delivery_rate,
-    round(
-        (count(case when el.status = 'opened' then 1 end)::numeric / 
-         nullif(count(case when el.status = 'delivered' then 1 end), 0) * 100), 2
-    ) as open_rate,
-    round(
-        (count(case when el.status = 'clicked' then 1 end)::numeric / 
-         nullif(count(case when el.status = 'opened' then 1 end), 0) * 100), 2
-    ) as click_rate
-from events e
-left join email_logs el on e.id = el.event_id
-group by e.id, e.name;
+-- Email analytics view will be created later by email tracking migration

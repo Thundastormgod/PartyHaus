@@ -93,10 +93,21 @@ create policy "System can insert email events"
     on email_events for insert
     with check (true); -- Allow webhook system to insert events
 
--- Add email status to guests table
-alter table guests add column email_status text default 'not_sent' check (email_status in ('not_sent', 'sent', 'delivered', 'opened', 'clicked', 'bounced', 'failed'));
-alter table guests add column last_email_sent_at timestamp with time zone;
-alter table guests add column email_log_id uuid references email_logs(id);
+-- Add email status to guests table if not exists
+do $$
+begin
+    if not exists (select 1 from information_schema.columns where table_name = 'guests' and column_name = 'email_status') then
+        alter table guests add column email_status text default 'not_sent' check (email_status in ('not_sent', 'sent', 'delivered', 'opened', 'clicked', 'bounced', 'failed'));
+    end if;
+    
+    if not exists (select 1 from information_schema.columns where table_name = 'guests' and column_name = 'last_email_sent_at') then
+        alter table guests add column last_email_sent_at timestamp with time zone;
+    end if;
+    
+    if not exists (select 1 from information_schema.columns where table_name = 'guests' and column_name = 'email_log_id') then
+        alter table guests add column email_log_id uuid references email_logs(id);
+    end if;
+end $$;
 
 -- Create view for email analytics
 create or replace view email_analytics as

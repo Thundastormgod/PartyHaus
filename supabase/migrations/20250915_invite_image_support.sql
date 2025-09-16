@@ -5,9 +5,13 @@
 
 BEGIN;
 
--- Add invite_image_url column to events table
-ALTER TABLE events 
-ADD COLUMN invite_image_url TEXT;
+-- Add invite_image_url column to events table if not exists
+do $$
+begin
+    if not exists (select 1 from information_schema.columns where table_name = 'events' and column_name = 'invite_image_url') then
+        ALTER TABLE events ADD COLUMN invite_image_url TEXT;
+    end if;
+end $$;;
 
 -- Add comment to describe the column
 COMMENT ON COLUMN events.invite_image_url IS 'URL of uploaded custom invite image (stored in Supabase storage)';
